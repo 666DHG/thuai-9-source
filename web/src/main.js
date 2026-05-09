@@ -231,8 +231,10 @@ function connect() {
       reconnectAttempt: 0,
       lastError: "",
     });
-    sendAction(cancelOrderMessage(state.connection.token || "player1", -1), { silent: true });
     sendAction(helloMessage(state.connection.role, state.connection.token), { silent: true });
+    if (state.connection.role === "player" && state.connection.token) {
+      sendAction(cancelOrderMessage(state.connection.token, -1), { silent: true });
+    }
     renderApp(state);
   });
 

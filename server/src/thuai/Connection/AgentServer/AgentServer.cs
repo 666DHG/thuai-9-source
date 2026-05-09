@@ -12,6 +12,13 @@ public partial class AgentServer
     private WebSocketServer? _wsServer;
     private readonly ConcurrentDictionary<Guid, IWebSocketConnection> _sockets = new();
     private readonly ConcurrentDictionary<Guid, string> _socketTokens = new();
+    private readonly ConcurrentDictionary<string, byte> _validTokens = new();
+
+    public void RegisterValidToken(string token)
+    {
+        if (!string.IsNullOrEmpty(token))
+            _validTokens.TryAdd(token, 0);
+    }
     private readonly ConcurrentDictionary<Guid, ConcurrentQueue<string>> _socketRawTextReceivingQueue = new();
     private readonly ConcurrentDictionary<Guid, ConcurrentQueue<Message>> _socketMessageSendingQueue = new();
     private readonly ConcurrentDictionary<Guid, Task> _tasksForParsingMessage = new();

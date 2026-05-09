@@ -61,9 +61,18 @@ public partial class AgentServer
             return;
         }
 
-        // Handle player identification via token
+        // Handle player identification via token. Only bind sockets to tokens that
+        // were pre-registered as valid players, so observers (or arbitrary clients)
+        // sending a token-bearing message cannot impersonate a player and receive
+        // private state.
         if (!string.IsNullOrEmpty(message.Token) && !_socketTokens.ContainsKey(socketId))
         {
+            if (!_validTokens.ContainsKey(message.Token))
+            {
+                Log.Warning("Rejecting unknown token {Token} on socket {SocketId}", message.Token, socketId);
+                return;
+            }
+
             _socketTokens[socketId] = message.Token;
             AfterPlayerConnectEvent?.Invoke(this, new AfterPlayerConnectEventArgs
             {

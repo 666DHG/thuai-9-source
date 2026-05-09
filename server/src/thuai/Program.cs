@@ -39,6 +39,7 @@ public class Program
             foreach (var token in tokens)
             {
                 gameController.Game.AddPlayer(token);
+                agentServer.RegisterValidToken(token);
                 Log.Information("Added player: {Token}", token);
             }
 
