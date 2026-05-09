@@ -8,5 +8,6 @@ public partial class AgentServer
     public void HandleAfterPlayerConnectEvent(object? sender, AfterPlayerConnectEventArgs e)
     {
         _socketTokens[e.SocketId] = e.Token;
+        _socketRoles[e.SocketId] = SocketRole.Player;
     }
 }

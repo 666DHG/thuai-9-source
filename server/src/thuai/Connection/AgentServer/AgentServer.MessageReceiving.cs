@@ -33,7 +33,6 @@ public partial class AgentServer
 
     private void ParseMessage(Guid socketId, string rawText)
     {
-        // First, determine the message type
         using var doc = JsonDocument.Parse(rawText);
         var root = doc.RootElement;
 
@@ -44,6 +43,15 @@ public partial class AgentServer
         }
 
         string? messageType = msgTypeElement.GetString();
+
+        if (messageType == "HELLO")
+        {
+            var hello = JsonSerializer.Deserialize<HelloMessage>(rawText);
+            if (hello != null)
+                HandleHello(socketId, hello);
+            return;
+        }
+
         PerformMessage? message = messageType switch
         {
             "LIMIT_BUY" => JsonSerializer.Deserialize<LimitBuyMessage>(rawText),
@@ -61,10 +69,9 @@ public partial class AgentServer
             return;
         }
 
-        // Handle player identification via token. Only bind sockets to tokens that
-        // were pre-registered as valid players, so observers (or arbitrary clients)
-        // sending a token-bearing message cannot impersonate a player and receive
-        // private state.
+        // Implicit player binding via the first token-bearing action message,
+        // kept for backwards compatibility with SDK clients that don't send HELLO.
+        // Only pre-registered tokens are accepted.
         if (!string.IsNullOrEmpty(message.Token) && !_socketTokens.ContainsKey(socketId))
         {
             if (!_validTokens.ContainsKey(message.Token))
@@ -74,6 +81,7 @@ public partial class AgentServer
             }
 
             _socketTokens[socketId] = message.Token;
+            _socketRoles[socketId] = SocketRole.Player;
             AfterPlayerConnectEvent?.Invoke(this, new AfterPlayerConnectEventArgs
             {
                 SocketId = socketId,
@@ -82,10 +90,75 @@ public partial class AgentServer
             Log.Information("Player identified: {Token} on socket {SocketId}", message.Token, socketId);
         }
 
+        // Action messages are only honoured from sockets registered as a player.
+        // Observers and admins must use dedicated debug commands.
+        if (!_socketRoles.TryGetValue(socketId, out var role) || role != SocketRole.Player)
+        {
+            Log.Warning("Rejecting action {MessageType} from non-player socket {SocketId}", messageType, socketId);
+            return;
+        }
+
         AfterMessageReceiveEvent?.Invoke(this, new AfterMessageReceiveEventArgs
         {
             SocketId = socketId,
             Message = message
         });
+    }
+
+    private void HandleHello(Guid socketId, HelloMessage hello)
+    {
+        // Once a role has been assigned, ignore subsequent HELLOs to prevent
+        // role escalation on a single socket.
+        if (_socketRoles.ContainsKey(socketId))
+        {
+            Log.Warning("Ignoring duplicate HELLO from socket {SocketId}", socketId);
+            return;
+        }
+
+        switch (hello.Role?.ToLowerInvariant())
+        {
+            case "player":
+                if (string.IsNullOrEmpty(hello.Token) || !_validTokens.ContainsKey(hello.Token))
+                {
+                    Log.Warning("Rejecting HELLO with invalid player token {Token} from {SocketId}",
+                        hello.Token, socketId);
+                    return;
+                }
+                _socketTokens[socketId] = hello.Token;
+                _socketRoles[socketId] = SocketRole.Player;
+                AfterPlayerConnectEvent?.Invoke(this, new AfterPlayerConnectEventArgs
+                {
+                    SocketId = socketId,
+                    Token = hello.Token
+                });
+                Log.Information("Player connected via HELLO: {Token} on socket {SocketId}",
+                    hello.Token, socketId);
+                break;
+
+            case "observer":
+                _socketRoles[socketId] = SocketRole.Observer;
+                Log.Information("Observer registered on socket {SocketId}", socketId);
+                break;
+
+            case "admin":
+                if (string.IsNullOrEmpty(AdminSecret))
+                {
+                    Log.Warning("Rejecting HELLO admin from {SocketId}: admin mode disabled (set THUAI_ADMIN_SECRET to enable)", socketId);
+                    return;
+                }
+                if (hello.AdminSecret != AdminSecret)
+                {
+                    Log.Warning("Rejecting HELLO admin from {SocketId}: bad secret", socketId);
+                    return;
+                }
+                _socketRoles[socketId] = SocketRole.Admin;
+                Log.Information("Admin registered on socket {SocketId}", socketId);
+                break;
+
+            default:
+                Log.Warning("Rejecting HELLO with unknown role {Role} from {SocketId}",
+                    hello.Role, socketId);
+                break;
+        }
     }
 }

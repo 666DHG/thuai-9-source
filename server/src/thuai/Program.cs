@@ -29,7 +29,13 @@ public class Program
         try
         {
             // Create components
-            var agentServer = new AgentServer { Port = config.Server.Port };
+            var agentServer = new AgentServer
+            {
+                Port = config.Server.Port,
+                AdminSecret = Environment.GetEnvironmentVariable("THUAI_ADMIN_SECRET")
+            };
+            if (!string.IsNullOrEmpty(agentServer.AdminSecret))
+                Log.Information("Admin debug interface enabled (THUAI_ADMIN_SECRET set)");
             var gameController = new GameController.GameController(config.Game);
             using var recorder = new Recorder.Recorder("./data", config.Recorder.KeepRecord);
 
@@ -188,19 +194,20 @@ public class Program
                 Quantity = l.Quantity
             }).ToList();
 
+            // Public market snapshot — identical for everyone, broadcast once.
+            var marketState = new MarketStateMessage
+            {
+                Bids = baseBids,
+                Asks = baseAsks,
+                LastPrice = orderBook.LastPrice,
+                MidPrice = orderBook.MidPrice,
+                Volume = orderBook.TotalVolume,
+                Tick = day.CurrentTick
+            };
+            agentServer.PublishToAll(marketState);
+
             foreach (var player in game.Players.Values)
             {
-                var marketState = new MarketStateMessage
-                {
-                    Bids = baseBids,
-                    Asks = baseAsks,
-                    LastPrice = orderBook.LastPrice,
-                    MidPrice = orderBook.MidPrice,
-                    Volume = orderBook.TotalVolume,
-                    Tick = day.CurrentTick
-                };
-                agentServer.Publish(marketState, player.Token);
-
                 var pendingOrders = day.GetPlayerPendingOrders(player.Token);
                 var playerState = new PlayerStateMessage
                 {
@@ -272,6 +279,11 @@ public class Program
 
         foreach (var news in tradingDay.PublishedNewsThisDay)
         {
+            // Each player may receive a spoofed view of the news due to skill cards,
+            // so the broadcast happens per-player. Observers and admins receive the
+            // un-spoofed real news via a separate PublishToAll call below — admins
+            // already get it through the per-player fan-out, so we only fan out to
+            // the role-broadcast for the un-bound observers.
             foreach (var player in game.Players.Values)
             {
                 News delivered = news;
@@ -289,6 +301,15 @@ public class Program
                     PublishTick = delivered.PublishTick
                 }, player.Token);
             }
+
+            agentServer.PublishToObservers(new NewsBroadcastMessage
+            {
+                Month = game.CurrentMonthNumber,
+                Day = news.PublishTick,
+                NewsId = news.NewsId,
+                Content = news.Content,
+                PublishTick = news.PublishTick
+            });
         }
 
         foreach (var (playerToken, preview) in tradingDay.PendingInsiderPreviews)

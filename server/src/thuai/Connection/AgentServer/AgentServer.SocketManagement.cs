@@ -33,6 +33,7 @@ public partial class AgentServer
         _socketMessageSendingQueue.TryRemove(socketId, out _);
         _tasksForParsingMessage.TryRemove(socketId, out _);
         _tasksForSendingMessage.TryRemove(socketId, out _);
+        _socketRoles.TryRemove(socketId, out _);
 
         if (_socketTokens.TryRemove(socketId, out var token))
         {

@@ -2,6 +2,17 @@ namespace Thuai.Protocol.Messages;
 
 using System.Text.Json.Serialization;
 
+public record HelloMessage : PerformMessage
+{
+    public override string MessageType => "HELLO";
+
+    [JsonPropertyName("role")]
+    public string Role { get; init; } = "";
+
+    [JsonPropertyName("adminSecret")]
+    public string? AdminSecret { get; init; }
+}
+
 public record LimitBuyMessage : PerformMessage
 {
     public override string MessageType => "LIMIT_BUY";

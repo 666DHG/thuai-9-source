@@ -5,13 +5,23 @@ using Fleck;
 using Serilog;
 using Thuai.Protocol.Messages;
 
+public enum SocketRole
+{
+    Unidentified = 0,
+    Player = 1,
+    Observer = 2,
+    Admin = 3,
+}
+
 public partial class AgentServer
 {
     public int Port { get; init; } = 14514;
+    public string? AdminSecret { get; set; }
 
     private WebSocketServer? _wsServer;
     private readonly ConcurrentDictionary<Guid, IWebSocketConnection> _sockets = new();
     private readonly ConcurrentDictionary<Guid, string> _socketTokens = new();
+    private readonly ConcurrentDictionary<Guid, SocketRole> _socketRoles = new();
     private readonly ConcurrentDictionary<string, byte> _validTokens = new();
 
     public void RegisterValidToken(string token)
@@ -19,6 +29,7 @@ public partial class AgentServer
         if (!string.IsNullOrEmpty(token))
             _validTokens.TryAdd(token, 0);
     }
+
     private readonly ConcurrentDictionary<Guid, ConcurrentQueue<string>> _socketRawTextReceivingQueue = new();
     private readonly ConcurrentDictionary<Guid, ConcurrentQueue<Message>> _socketMessageSendingQueue = new();
     private readonly ConcurrentDictionary<Guid, Task> _tasksForParsingMessage = new();
