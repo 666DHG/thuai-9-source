@@ -1,6 +1,11 @@
 import {
   activateSkillMessage,
   cancelOrderMessage,
+  debugAdvanceStageMessage,
+  debugGiveCardMessage,
+  debugInjectNewsMessage,
+  debugQueryMessage,
+  debugSetPlayerMessage,
   helloMessage,
   limitBuyMessage,
   limitSellMessage,
@@ -141,6 +146,11 @@ function bindControls() {
   document.getElementById("serverStrategyForm")?.addEventListener("submit", handleServerStrategy);
   document.getElementById("serverSkillForm")?.addEventListener("submit", handleServerSkill);
   document.getElementById("serverRawForm")?.addEventListener("submit", handleServerRaw);
+  document.getElementById("debugQueryForm")?.addEventListener("submit", handleDebugQuery);
+  document.getElementById("debugAdvanceForm")?.addEventListener("submit", handleDebugAdvance);
+  document.getElementById("debugGiveCardForm")?.addEventListener("submit", handleDebugGiveCard);
+  document.getElementById("debugInjectNewsForm")?.addEventListener("submit", handleDebugInjectNews);
+  document.getElementById("debugSetPlayerForm")?.addEventListener("submit", handleDebugSetPlayer);
 
   document.getElementById("strategyOptions")?.addEventListener("click", (event) => {
     const button = event.target.closest("[data-action='select-strategy']");
@@ -231,7 +241,10 @@ function connect() {
       reconnectAttempt: 0,
       lastError: "",
     });
-    sendAction(helloMessage(state.connection.role, state.connection.token), { silent: true });
+    sendAction(
+      helloMessage(state.connection.role, state.connection.token, state.connection.adminSecret),
+      { silent: true },
+    );
     if (state.connection.role === "player" && state.connection.token) {
       sendAction(cancelOrderMessage(state.connection.token, -1), { silent: true });
     }
@@ -414,6 +427,46 @@ function handleServerRaw(event) {
     return;
   }
   sendAction(message);
+}
+
+function handleDebugQuery(event) {
+  event.preventDefault();
+  sendAction(debugQueryMessage());
+}
+
+function handleDebugAdvance(event) {
+  event.preventDefault();
+  sendAction(debugAdvanceStageMessage());
+}
+
+function handleDebugGiveCard(event) {
+  event.preventDefault();
+  const data = new FormData(event.currentTarget);
+  sendAction(debugGiveCardMessage(
+    String(data.get("targetToken") || "").trim(),
+    String(data.get("cardName") || "").trim(),
+  ));
+}
+
+function handleDebugInjectNews(event) {
+  event.preventDefault();
+  const data = new FormData(event.currentTarget);
+  sendAction(debugInjectNewsMessage(
+    String(data.get("sentiment") || "Bullish"),
+    String(data.get("content") || "").trim() || undefined,
+  ));
+}
+
+function handleDebugSetPlayer(event) {
+  event.preventDefault();
+  const data = new FormData(event.currentTarget);
+  sendAction(debugSetPlayerMessage(
+    String(data.get("targetToken") || "").trim(),
+    {
+      mora: data.get("mora"),
+      gold: data.get("gold"),
+    },
+  ));
 }
 
 function loadDemo() {

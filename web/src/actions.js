@@ -1,4 +1,4 @@
-export function helloMessage(role, token) {
+export function helloMessage(role, token, adminSecret) {
   const message = {
     messageType: "HELLO",
     role,
@@ -7,6 +7,38 @@ export function helloMessage(role, token) {
   if (role === "player") {
     message.token = token;
   }
+  if (role === "admin" && adminSecret) {
+    message.adminSecret = adminSecret;
+  }
+  return message;
+}
+
+export function debugQueryMessage() {
+  return { messageType: "DEBUG_QUERY" };
+}
+
+export function debugGiveCardMessage(targetToken, cardName) {
+  return {
+    messageType: "DEBUG_GIVE_CARD",
+    targetToken,
+    cardName,
+  };
+}
+
+export function debugInjectNewsMessage(sentiment, content) {
+  const message = { messageType: "DEBUG_INJECT_NEWS", sentiment };
+  if (content) message.content = content;
+  return message;
+}
+
+export function debugAdvanceStageMessage() {
+  return { messageType: "DEBUG_ADVANCE_STAGE" };
+}
+
+export function debugSetPlayerMessage(targetToken, { mora, gold } = {}) {
+  const message = { messageType: "DEBUG_SET_PLAYER", targetToken };
+  if (mora !== undefined && mora !== null && mora !== "") message.mora = Number(mora);
+  if (gold !== undefined && gold !== null && gold !== "") message.gold = Number(gold);
   return message;
 }
 

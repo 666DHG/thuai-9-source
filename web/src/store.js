@@ -16,12 +16,14 @@ export function routeFromLocation(location) {
   const search = new URLSearchParams(location.search);
   const pathMode = location.pathname.includes("player") ? "player" : "observer";
   const mode = search.get("mode") || pathMode;
+  const role = mode === "player" ? "player" : mode === "admin" ? "admin" : "observer";
   const rawServer = search.get("server") || "ws://localhost:14514";
   const portMatch = rawServer.match(/:(\d+)$/);
   const port = portMatch ? portMatch[1] : "14514";
   return {
-    role: mode === "player" ? "player" : "observer",
+    role,
     token: search.get("token") || "player1",
+    adminSecret: search.get("secret") || "",
     server: `ws://localhost:${port}`,
   };
 }
@@ -31,6 +33,7 @@ export function createInitialState(route = {}) {
     connection: {
       role: route.role || "observer",
       token: route.token || "player1",
+      adminSecret: route.adminSecret || "",
       server: route.server || "ws://localhost:14514",
       status: "idle",
       protocolVersion: "legacy",
@@ -254,6 +257,22 @@ export function applyMessage(state, message) {
         kind: "error",
         title: `错误 ${message.errorCode ?? ""}`.trim(),
         detail: message.message || "",
+      });
+      break;
+
+    case "DEBUG_ACK":
+      pushEvent(state, {
+        kind: message.ok ? "system" : "error",
+        title: `${message.command || "DEBUG"} · ${message.ok ? "ok" : "fail"}`,
+        detail: message.error || "",
+      });
+      break;
+
+    case "DEBUG_QUERY_RESPONSE":
+      pushEvent(state, {
+        kind: "system",
+        title: `DEBUG_QUERY · ${message.stage || "?"}`,
+        detail: JSON.stringify(message, null, 2),
       });
       break;
 

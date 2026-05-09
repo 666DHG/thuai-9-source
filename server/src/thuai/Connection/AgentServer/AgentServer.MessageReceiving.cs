@@ -112,12 +112,36 @@ public partial class AgentServer
             Log.Information("Player identified: {Token} on socket {SocketId}", message.Token, socketId);
         }
 
-        // Action messages are only honoured from sockets registered as a player.
-        // Observers and admins must use dedicated debug commands.
-        if (!_socketRoles.TryGetValue(socketId, out var role) || role != SocketRole.Player)
+        // Action messages: players act only with their bound token; admins may
+        // act on behalf of any registered token (used by the 服务器调试台 panel
+        // to test rule scenarios); observers can't issue actions at all.
+        if (!_socketRoles.TryGetValue(socketId, out var role))
         {
-            Log.Warning("Rejecting action {MessageType} from non-player socket {SocketId}", messageType, socketId);
+            Log.Warning("Rejecting action {MessageType} from unidentified socket {SocketId}", messageType, socketId);
             return;
+        }
+
+        switch (role)
+        {
+            case SocketRole.Player:
+                if (!_socketTokens.TryGetValue(socketId, out var boundToken) || boundToken != message.Token)
+                {
+                    Log.Warning("Player socket {SocketId} (bound to {Bound}) attempted to act as {Attempted}",
+                        socketId, _socketTokens.GetValueOrDefault(socketId), message.Token);
+                    return;
+                }
+                break;
+            case SocketRole.Admin:
+                if (string.IsNullOrEmpty(message.Token) || !_validTokens.ContainsKey(message.Token))
+                {
+                    Log.Warning("Admin {SocketId} action targets unknown token {Token}", socketId, message.Token);
+                    return;
+                }
+                break;
+            default:
+                Log.Warning("Rejecting action {MessageType} from {Role} socket {SocketId}",
+                    messageType, role, socketId);
+                return;
         }
 
         AfterMessageReceiveEvent?.Invoke(this, new AfterMessageReceiveEventArgs

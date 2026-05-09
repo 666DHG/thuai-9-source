@@ -29,7 +29,9 @@ const VIEW_TITLES = {
 };
 
 export function renderApp(state) {
-  document.body.dataset.mode = state.connection.role;
+  // Admin reuses the observer chrome so the server-debug panel shows up;
+  // role-aware logic still reads state.connection.role directly.
+  document.body.dataset.mode = state.connection.role === "admin" ? "observer" : state.connection.role;
   applyColorScheme(state.ui.colorScheme);
 
   if (state.connection.role !== "player" && (state.ui.activeView === "info" || state.ui.activeView === "debug")) {

@@ -409,6 +409,63 @@
                   <button type="submit">激活技能</button>
                 </form>
 
+                <div class="action-form" style="border-top:1px dashed var(--line);padding-top:12px;margin-top:8px;grid-template-columns:1fr">
+                  <p class="eyebrow" style="margin:0">Admin Debug · 需 ?mode=admin&amp;secret=…</p>
+                </div>
+
+                <form id="debugQueryForm" class="action-form two-column">
+                  <p style="margin:0;align-self:center;font-size:13px;opacity:0.8">完整状态快照</p>
+                  <button type="submit">DEBUG_QUERY</button>
+                </form>
+
+                <form id="debugAdvanceForm" class="action-form two-column">
+                  <p style="margin:0;align-self:center;font-size:13px;opacity:0.8">跳过 Waiting 阶段</p>
+                  <button type="submit">DEBUG_ADVANCE_STAGE</button>
+                </form>
+
+                <form id="debugGiveCardForm" class="action-form">
+                  <label>
+                    <span>目标 token</span>
+                    <input name="targetToken" type="text" placeholder="player1" required>
+                  </label>
+                  <label>
+                    <span>卡牌名称</span>
+                    <input name="cardName" type="text" placeholder="内幕消息" required>
+                  </label>
+                  <button type="submit" style="grid-column:span 2">DEBUG_GIVE_CARD</button>
+                </form>
+
+                <form id="debugInjectNewsForm" class="action-form">
+                  <label>
+                    <span>方向</span>
+                    <select name="sentiment">
+                      <option value="Bullish">Bullish</option>
+                      <option value="Bearish">Bearish</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>正文 (可选)</span>
+                    <input name="content" type="text">
+                  </label>
+                  <button type="submit" style="grid-column:span 2">DEBUG_INJECT_NEWS</button>
+                </form>
+
+                <form id="debugSetPlayerForm" class="action-form">
+                  <label>
+                    <span>目标 token</span>
+                    <input name="targetToken" type="text" placeholder="player1" required>
+                  </label>
+                  <label>
+                    <span>Mora</span>
+                    <input name="mora" type="number" step="1">
+                  </label>
+                  <label>
+                    <span>Gold</span>
+                    <input name="gold" type="number" step="1">
+                  </label>
+                  <button type="submit" style="grid-column:span 2">DEBUG_SET_PLAYER</button>
+                </form>
+
                 <form id="serverRawForm" class="action-form" style="grid-template-columns:1fr">
                   <label>
                     <span>原始 JSON</span>
