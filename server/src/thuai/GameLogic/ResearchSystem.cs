@@ -10,7 +10,7 @@ public class ResearchSystem
     private readonly List<ResearchReport> _settledReports = new();
 
     public ResearchSystem(NewsSystem newsSystem, long baseReward = 10000,
-                          int researchWindow = 50, int settlementDelay = 100)
+                          int researchWindow = 2, int settlementDelay = 3)
     {
         _newsSystem = newsSystem;
         _baseReward = baseReward;

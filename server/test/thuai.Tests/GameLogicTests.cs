@@ -248,9 +248,11 @@ public class MatchEngineTests
             currentTick: 0);
 
         Assert.NotNull(order);
-        // cost = 100 * 10 = 1000
-        Assert.Equal(initialMora - 1000, _buyer.Mora);
-        Assert.Equal(1000, _buyer.FrozenMora);
+        // notional = 100 * 10 = 1000; fee buffer = ceil(1000 * 0.0002) = 1
+        long expectedReserve = 1000 + (long)Math.Ceiling(1000 * _buyer.TransactionFeeRate);
+        Assert.Equal(initialMora - expectedReserve, _buyer.Mora);
+        Assert.Equal(expectedReserve, _buyer.FrozenMora);
+        Assert.Equal(expectedReserve - 1000, order.FrozenFeeRemaining);
     }
 
     [Fact]
@@ -818,13 +820,13 @@ public class GameTests
             MinimumPlayerCount = 2,
             PlayerWaitingTicks = 3,
             StrategySelectionTicks = 40,
-            TradingDayTicks = 2000,
+            TradingDayTicks = 30,
             TradingDayCount = 3,
             InitialGoldPrice = 1000,
-            NewsIntervalMin = 200,
-            NewsIntervalMax = 400,
-            ResearchWindowTicks = 50,
-            ResearchSettlementDelay = 100,
+            NewsIntervalMin = 1,
+            NewsIntervalMax = 1,
+            ResearchWindowTicks = 2,
+            ResearchSettlementDelay = 3,
             BaseResearchReward = 10000,
             NpcOrdersPerTick = 3
         };

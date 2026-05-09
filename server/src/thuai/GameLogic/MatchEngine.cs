@@ -35,14 +35,17 @@ public class MatchEngine
                 return null;
         }
 
+        long feeReserve = 0;
         if (playerToken != SystemToken)
         {
             if (side == OrderSide.Buy)
             {
-                long cost = price * quantity;
-                if (player!.Mora < cost)
+                long notional = price * quantity;
+                feeReserve = (long)Math.Ceiling(notional * player!.TransactionFeeRate);
+                long totalReserve = notional + feeReserve;
+                if (player.Mora < totalReserve)
                     return null;
-                player.FreezeMora(cost);
+                player.FreezeMora(totalReserve);
             }
             else
             {
@@ -52,7 +55,10 @@ public class MatchEngine
             }
         }
 
-        var order = new Order(playerToken, side, price, quantity, currentTick, networkDelay, priorityRank, isIceberg);
+        var order = new Order(playerToken, side, price, quantity, currentTick, networkDelay, priorityRank, isIceberg)
+        {
+            FrozenFeeRemaining = feeReserve
+        };
         _pendingOrders.Add(order);
         return order;
     }
@@ -261,21 +267,29 @@ public class MatchEngine
         if (!_players.TryGetValue(order.PlayerToken, out var player))
             return;
 
-        long frozenPortion = order.Price * quantity;
-        long actualCost = price * quantity + fee;
+        long pricePortion = order.Price * quantity;
+        long tradeAmount = price * quantity;
+        long feeFromBuffer = Math.Min(fee, order.FrozenFeeRemaining);
 
-        if (frozenPortion >= actualCost)
+        player.SpendFrozenMora(tradeAmount + feeFromBuffer);
+        order.FrozenFeeRemaining -= feeFromBuffer;
+
+        long priceRefund = pricePortion - tradeAmount;
+        if (priceRefund > 0)
+            player.UnfreezeMora(priceRefund);
+
+        long feeShortfall = fee - feeFromBuffer;
+        if (feeShortfall > 0)
         {
-            player.SpendFrozenMora(actualCost);
-            long refund = frozenPortion - actualCost;
-            if (refund > 0)
-                player.UnfreezeMora(refund);
+            long shortfallFromAvailable = Math.Min(feeShortfall, player.Mora);
+            if (shortfallFromAvailable > 0)
+                player.AddMora(-shortfallFromAvailable);
         }
-        else
+
+        if (order.RemainingQuantity == 0 && order.FrozenFeeRemaining > 0)
         {
-            player.SpendFrozenMora(frozenPortion);
-            long shortfall = actualCost - frozenPortion;
-            player.AddMora(-shortfall);
+            player.UnfreezeMora(order.FrozenFeeRemaining);
+            order.FrozenFeeRemaining = 0;
         }
 
         player.AddGold(quantity);
@@ -304,9 +318,16 @@ public class MatchEngine
             return;
 
         if (order.Side == OrderSide.Buy)
-            player.UnfreezeMora(order.Price * order.RemainingQuantity);
+        {
+            long refund = order.Price * order.RemainingQuantity + order.FrozenFeeRemaining;
+            if (refund > 0)
+                player.UnfreezeMora(refund);
+            order.FrozenFeeRemaining = 0;
+        }
         else
+        {
             player.UnfreezeGold(order.RemainingQuantity);
+        }
     }
 
     private void RefundActiveOrder(Order order)
@@ -319,12 +340,6 @@ public class MatchEngine
         if (order.PlayerToken == SystemToken || order.RemainingQuantity <= 0)
             return;
 
-        if (!_players.TryGetValue(order.PlayerToken, out var player))
-            return;
-
-        if (order.Side == OrderSide.Buy)
-            player.UnfreezeMora(order.Price * order.RemainingQuantity);
-        else
-            player.UnfreezeGold(order.RemainingQuantity);
+        RefundPendingOrder(order);
     }
 }

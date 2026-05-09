@@ -20,6 +20,8 @@ public class Order
     public bool IsIceberg { get; }
     public int VisibleQuantity => RemainingQuantity;
 
+    public long FrozenFeeRemaining { get; set; }
+
     public Order(string playerToken, OrderSide side, long price, int quantity,
         int submitTick, int networkDelay, int priorityRank = 0, bool isIceberg = false)
     {
