@@ -1,6 +1,6 @@
 # 华清街大亨 Web Frontend
 
-这是 THUAI-9 “华清街大亨”主题的原生 Web SPA，用于旁观者观战页和操盘手调试控制台。前端保留原有无框架 ES modules 结构，静态托管切换为 Node.js + Express。
+这是 THUAI-9 “华清街大亨”主题的原生 Web SPA，用于旁观者观战页、操盘手调试控制台和管理员服务器控制台。前端保留原有无框架 ES modules 结构，静态托管切换为 Node.js + Express。
 
 ## 运行
 
@@ -14,6 +14,7 @@ npm run serve
 
 - `http://localhost:5173/?mode=observer`
 - `http://localhost:5173/?mode=player&token=player1`
+- `http://localhost:5173/?mode=admin&secret=YOUR_SECRET`
 
 默认 WebSocket 服务端为 `ws://localhost:14514`。页面会优先发送 `HELLO`，服务端尚未支持握手时仍可进入 legacy 联调状态。
 

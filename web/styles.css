@@ -181,11 +181,21 @@ button:disabled {
   box-shadow: var(--shadow);
 }
 
+.connection-credentials {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+body[data-mode="observer"] .connection-credentials {
+  display: none;
+}
+
 .segmented {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 4px;
-  min-width: 210px;
+  min-width: 300px;
   padding: 4px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -1215,6 +1225,14 @@ body[data-mode="player"] .menu-button.player-menu-item {
   display: flex;
 }
 
+.menu-button.admin-menu-item {
+  display: none;
+}
+
+body[data-mode="admin"] .menu-button.admin-menu-item {
+  display: flex;
+}
+
 .main-shell {
   display: grid;
   grid-template-rows: auto 1fr;
@@ -1479,6 +1497,14 @@ body[data-mode="player"] .menu-button.player-menu-item {
   display: none;
 }
 
+.admin-only {
+  display: none;
+}
+
+body[data-mode="admin"] .admin-only {
+  display: grid;
+}
+
 body[data-mode="player"] .player-only {
   display: flex;
 }
@@ -1537,14 +1563,6 @@ body[data-mode="player"] .view-panel.player-only {
   border-radius: 0;
   flex: 1;
   min-width: 0;
-}
-
-.menu-button.observer-menu-item {
-  display: none;
-}
-
-body[data-mode="observer"] .menu-button.observer-menu-item {
-  display: flex;
 }
 
 /* ─── Ticker Bar ─────────────────────────────────────────── */

@@ -66,7 +66,7 @@ function bindControls() {
     if (state.connection.role !== "player" && (button.dataset.view === "info" || button.dataset.view === "debug")) {
       return;
     }
-    if (state.connection.role === "player" && button.dataset.view === "server-debug") {
+    if (button.dataset.view === "server-debug" && state.connection.role !== "admin") {
       return;
     }
     setActiveView(state, button.dataset.view);
@@ -112,6 +112,12 @@ function bindControls() {
     renderApp(state);
   });
 
+  document.getElementById("adminSecretInput")?.addEventListener("change", (event) => {
+    setConnectionPatch(state, { adminSecret: event.target.value.trim() });
+    updateRoute();
+    renderApp(state);
+  });
+
   document.getElementById("connectButton")?.addEventListener("click", connect);
   document.getElementById("disconnectButton")?.addEventListener("click", () => disconnect(true));
   document.getElementById("demoButton")?.addEventListener("click", loadDemo);
@@ -139,18 +145,12 @@ function bindControls() {
   document.getElementById("reportForm")?.addEventListener("submit", handleReport);
   document.getElementById("quickReportForm")?.addEventListener("submit", handleQuickReport);
   document.getElementById("skillForm")?.addEventListener("submit", handleSkill);
-
-  document.getElementById("serverOrderForm")?.addEventListener("submit", handleServerOrder);
-  document.getElementById("serverCancelForm")?.addEventListener("submit", handleServerCancel);
-  document.getElementById("serverReportForm")?.addEventListener("submit", handleServerReport);
-  document.getElementById("serverStrategyForm")?.addEventListener("submit", handleServerStrategy);
-  document.getElementById("serverSkillForm")?.addEventListener("submit", handleServerSkill);
-  document.getElementById("serverRawForm")?.addEventListener("submit", handleServerRaw);
   document.getElementById("debugQueryForm")?.addEventListener("submit", handleDebugQuery);
   document.getElementById("debugAdvanceForm")?.addEventListener("submit", handleDebugAdvance);
   document.getElementById("debugGiveCardForm")?.addEventListener("submit", handleDebugGiveCard);
   document.getElementById("debugInjectNewsForm")?.addEventListener("submit", handleDebugInjectNews);
   document.getElementById("debugSetPlayerForm")?.addEventListener("submit", handleDebugSetPlayer);
+  document.getElementById("serverRawForm")?.addEventListener("submit", handleServerRaw);
 
   document.getElementById("strategyOptions")?.addEventListener("click", (event) => {
     const button = event.target.closest("[data-action='select-strategy']");
@@ -219,9 +219,11 @@ function connect() {
 
   const server = serverUrlFromPort();
   const token = document.getElementById("tokenInput")?.value.trim() || state.connection.token;
+  const adminSecret = document.getElementById("adminSecretInput")?.value.trim() || state.connection.adminSecret;
   setConnectionPatch(state, {
     server,
     token,
+    adminSecret,
     status: "connecting",
     lastError: "",
   });
@@ -377,43 +379,6 @@ function handleSkill(event) {
   ));
 }
 
-function serverDebugToken() {
-  return document.getElementById("serverDebugToken")?.value.trim() || state.connection.token;
-}
-
-function handleServerOrder(event) {
-  event.preventDefault();
-  const data = new FormData(event.currentTarget);
-  const message = event.submitter?.value === "sell"
-    ? limitSellMessage(serverDebugToken(), data.get("price"), data.get("quantity"))
-    : limitBuyMessage(serverDebugToken(), data.get("price"), data.get("quantity"));
-  sendAction(message);
-}
-
-function handleServerCancel(event) {
-  event.preventDefault();
-  const data = new FormData(event.currentTarget);
-  sendAction(cancelOrderMessage(serverDebugToken(), data.get("orderId")));
-}
-
-function handleServerReport(event) {
-  event.preventDefault();
-  const data = new FormData(event.currentTarget);
-  sendAction(submitReportMessage(serverDebugToken(), data.get("newsId"), data.get("prediction")));
-}
-
-function handleServerStrategy(event) {
-  event.preventDefault();
-  const data = new FormData(event.currentTarget);
-  sendAction(selectStrategyMessage(serverDebugToken(), data.get("cardName")));
-}
-
-function handleServerSkill(event) {
-  event.preventDefault();
-  const data = new FormData(event.currentTarget);
-  sendAction(activateSkillMessage(serverDebugToken(), String(data.get("skillName") || "").trim(), data.get("direction")));
-}
-
 function handleServerRaw(event) {
   event.preventDefault();
   const raw = document.getElementById("serverRawJson")?.value.trim();
@@ -548,8 +513,17 @@ function closeModal(id) {
 function updateRoute() {
   const url = new URL(window.location.href);
   url.searchParams.set("mode", state.connection.role);
-  url.searchParams.set("token", state.connection.token);
   url.searchParams.set("server", state.connection.server);
+  if (state.connection.role === "player") {
+    url.searchParams.set("token", state.connection.token);
+  } else {
+    url.searchParams.delete("token");
+  }
+  if (state.connection.role === "admin" && state.connection.adminSecret) {
+    url.searchParams.set("secret", state.connection.adminSecret);
+  } else {
+    url.searchParams.delete("secret");
+  }
   window.history.replaceState({}, "", url);
 }
 

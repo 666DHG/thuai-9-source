@@ -53,6 +53,7 @@
           <div class="segmented" id="modeTabs">
             <button type="button" data-mode="observer">旁观者</button>
             <button type="button" data-mode="player">操盘手</button>
+            <button type="button" data-mode="admin">管理员</button>
           </div>
 
           <label class="field">
@@ -63,10 +64,17 @@
             </div>
           </label>
 
-          <label class="field">
-            <span>令牌</span>
-            <input id="tokenInput" type="text" value="player1" spellcheck="false">
-          </label>
+          <div class="connection-credentials">
+            <label class="field player-only connection-player-token">
+              <span>令牌</span>
+              <input id="tokenInput" type="text" value="player1" spellcheck="false">
+            </label>
+
+            <label class="field admin-only connection-admin-secret">
+              <span>管理员密钥</span>
+              <input id="adminSecretInput" type="password" placeholder="THUAI_ADMIN_SECRET" spellcheck="false">
+            </label>
+          </div>
 
           <label class="field">
             <span>颜色配置</span>
@@ -86,7 +94,7 @@
           <button type="button" class="menu-button" data-view="rankings">富豪榜</button>
           <button type="button" class="menu-button player-menu-item" data-view="info">我的账户</button>
           <button type="button" class="menu-button player-menu-item" data-view="debug">操盘台</button>
-          <button type="button" class="menu-button observer-menu-item" data-view="server-debug">服务器控制台</button>
+          <button type="button" class="menu-button admin-menu-item" data-view="server-debug">服务器控制台</button>
         </nav>
       </aside>
 
@@ -334,83 +342,13 @@
               <section class="panel">
                 <div class="panel-head compact">
                   <div>
-                    <p class="eyebrow">控制台</p>
-                    <h2>服务器调试台</h2>
+                    <p class="eyebrow">管理员</p>
+                    <h2>服务器控制台</h2>
                   </div>
                 </div>
 
-                <div class="action-form" style="border-top:0;padding-top:0">
-                  <label>
-                    <span>令牌 (覆盖)</span>
-                    <input id="serverDebugToken" type="text" placeholder="player1" spellcheck="false">
-                  </label>
-                </div>
-
-                <form id="serverOrderForm" class="action-form">
-                  <label>
-                    <span>价格</span>
-                    <input name="price" type="number" min="1" step="1" required>
-                  </label>
-                  <label>
-                    <span>数量</span>
-                    <input name="quantity" type="number" min="1" step="1" required>
-                  </label>
-                  <div class="button-row">
-                    <button class="side-button buy" name="side" value="buy" type="submit">买入</button>
-                    <button class="side-button sell" name="side" value="sell" type="submit">卖出</button>
-                  </div>
-                </form>
-
-                <form id="serverCancelForm" class="action-form two-column">
-                  <label>
-                    <span>Order ID</span>
-                    <input name="orderId" type="number" min="1" step="1" required>
-                  </label>
-                  <button type="submit">撤单</button>
-                </form>
-
-                <form id="serverReportForm" class="action-form">
-                  <label>
-                    <span>News ID</span>
-                    <input name="newsId" type="number" min="1" step="1" required>
-                  </label>
-                  <label>
-                    <span>方向</span>
-                    <select name="prediction">
-                      <option value="Long">Long</option>
-                      <option value="Short">Short</option>
-                      <option value="Hold">Hold</option>
-                    </select>
-                  </label>
-                  <button type="submit">提交研报</button>
-                </form>
-
-                <form id="serverStrategyForm" class="action-form two-column">
-                  <label>
-                    <span>Card Name</span>
-                    <input name="cardName" type="text" placeholder="基建A" required>
-                  </label>
-                  <button type="submit">选择策略</button>
-                </form>
-
-                <form id="serverSkillForm" class="action-form">
-                  <label>
-                    <span>技能</span>
-                    <input name="skillName" type="text" placeholder="暗池交易" required>
-                  </label>
-                  <label>
-                    <span>方向</span>
-                    <select name="direction">
-                      <option value="">-</option>
-                      <option value="buy">buy</option>
-                      <option value="sell">sell</option>
-                    </select>
-                  </label>
-                  <button type="submit">激活技能</button>
-                </form>
-
-                <div class="action-form" style="border-top:1px dashed var(--line);padding-top:12px;margin-top:8px;grid-template-columns:1fr">
-                  <p class="eyebrow" style="margin:0">Admin Debug · 需 ?mode=admin&amp;secret=…</p>
+                <div class="action-form admin-banner" style="border-top:0;padding-top:0;grid-template-columns:1fr">
+                  <p class="eyebrow" style="margin:0">DEBUG_* · 直接作用于后端 server 状态</p>
                 </div>
 
                 <form id="debugQueryForm" class="action-form two-column">
@@ -471,13 +409,14 @@
                     <span>原始 JSON</span>
                     <textarea id="serverRawJson" rows="4"
                       style="width:100%;font-family:monospace;font-size:13px;border:1px solid var(--line);border-radius:8px;padding:8px;resize:vertical"
-                      placeholder='{"messageType":"HELLO","role":"observer"}'></textarea>
+                      placeholder='{"messageType":"DEBUG_QUERY"}'></textarea>
                   </label>
                   <button type="submit">发送原始消息</button>
                 </form>
               </section>
             </div>
           </section>
+
         </div>
       </main>
     </div>

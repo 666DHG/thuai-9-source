@@ -93,11 +93,11 @@ export function setConnectionPatch(state, patch) {
 }
 
 export function setMode(state, role) {
-  state.connection.role = role === "player" ? "player" : "observer";
+  state.connection.role = role === "player" ? "player" : role === "admin" ? "admin" : "observer";
   if (state.connection.role !== "player" && (state.ui.activeView === "info" || state.ui.activeView === "debug")) {
     state.ui.activeView = "main";
   }
-  if (state.connection.role === "player" && state.ui.activeView === "server-debug") {
+  if (state.connection.role !== "admin" && state.ui.activeView === "server-debug") {
     state.ui.activeView = "main";
   }
 }

@@ -29,15 +29,13 @@ const VIEW_TITLES = {
 };
 
 export function renderApp(state) {
-  // Admin reuses the observer chrome so the server-debug panel shows up;
-  // role-aware logic still reads state.connection.role directly.
-  document.body.dataset.mode = state.connection.role === "admin" ? "observer" : state.connection.role;
+  document.body.dataset.mode = state.connection.role;
   applyColorScheme(state.ui.colorScheme);
 
   if (state.connection.role !== "player" && (state.ui.activeView === "info" || state.ui.activeView === "debug")) {
     state.ui.activeView = "main";
   }
-  if (state.connection.role === "player" && state.ui.activeView === "server-debug") {
+  if (state.connection.role !== "admin" && state.ui.activeView === "server-debug") {
     state.ui.activeView = "main";
   }
 
@@ -169,6 +167,7 @@ function renderConnection(state) {
 function renderControls(state) {
   const portInput = document.getElementById("portInput");
   const tokenInput = document.getElementById("tokenInput");
+  const adminSecretInput = document.getElementById("adminSecretInput");
   const priceModeSelect = document.getElementById("priceModeSelect");
   const intervalSelect = document.getElementById("intervalSelect");
   const colorSchemeSelect = document.getElementById("colorSchemeSelect");
@@ -178,6 +177,7 @@ function renderControls(state) {
     portInput.value = match ? match[1] : "14514";
   }
   setInputValue(tokenInput, state.connection.token);
+  setInputValue(adminSecretInput, state.connection.adminSecret);
   setInputValue(priceModeSelect, state.market.priceField);
   setInputValue(intervalSelect, String(state.market.interval));
   fillColorSchemeOptions(colorSchemeSelect);

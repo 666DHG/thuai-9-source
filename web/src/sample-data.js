@@ -1,8 +1,9 @@
-export function buildSampleMessages() {
+export function buildSampleMessages(role = "observer") {
+  const helloRole = role === "admin" ? "admin" : role === "player" ? "player" : "observer";
   const messages = [
     {
       messageType: "HELLO_ACK",
-      role: "observer",
+      role: helloRole,
       protocolVersion: "v1",
       capabilities: ["gameState", "marketState", "playerSummary", "events"],
     },
