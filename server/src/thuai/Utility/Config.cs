@@ -138,4 +138,10 @@ public record RecorderSettings
 
     [JsonPropertyName("statisticsSaveIntervalTicks")]
     public int StatisticsSaveIntervalTicks { get; init; } = 100;
+
+    [JsonPropertyName("enableStatRecording")]
+    public bool EnableStatRecording { get; init; } = true;
+
+    [JsonPropertyName("statFlushEveryRecords")]
+    public int StatFlushEveryRecords { get; init; } = 500;
 }

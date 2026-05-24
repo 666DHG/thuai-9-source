@@ -51,6 +51,7 @@ public class Program
                 Log.Warning("Open token mode enabled: any non-empty player token will be accepted");
             var gameController = new GameController.GameController(config.Game);
             using var recorder = new Recorder.Recorder("./data", config.Recorder.KeepRecord, config.Recorder.FlushEveryRecords);
+            using var statRecorder = new Recorder.StatRecorder("./data", config.Recorder.EnableStatRecording, config.Recorder.StatFlushEveryRecords);
             var disconnectedPlayerRetentionTicks = config.Game.DisconnectedPlayerRetentionTicks;
             if (infiniteMode && disconnectedPlayerRetentionTicks <= 0)
                 disconnectedPlayerRetentionTicks = Math.Max(config.Game.TicksPerSecond * 300, 1);
@@ -97,15 +98,22 @@ public class Program
             gameController.Game.AfterGameTickEvent += (sender, e) =>
             {
                 ExpireDisconnectedPlayers(e.Game, sessionTracker);
+                statRecorder.RecordFromGame(e.Game);
                 BroadcastGameState(agentServer, e.Game);
                 RecordGameState(recorder, e.Game);
 
                 if (e.Game.Stage == GameStage.Settlement)
+                {
                     recorder.SaveResults(e.Game.GetScoreboardSnapshot());
+                    statRecorder.Save();
+                }
 
                 var sessions = sessionTracker.GetSnapshots(e.Game.CurrentTick);
                 if (statisticsWriter.MaybeSave(e.Game, sessions))
+                {
                     recorder.SaveResults(e.Game.GetScoreboardSnapshot());
+                    statRecorder.Save();
+                }
             };
 
             // Start server
@@ -125,6 +133,7 @@ public class Program
             // Game finished - save results
             Log.Information("Game complete. Saving results...");
             recorder.Flush();
+            statRecorder.Flush();
 
             var scores = gameController.Game.GetScoreboardSnapshot();
             statisticsWriter.Save(gameController.Game, sessionTracker.GetSnapshots(gameController.Game.CurrentTick));

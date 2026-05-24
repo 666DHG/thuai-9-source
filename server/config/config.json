@@ -42,6 +42,8 @@
   "recorder": {
     "keepRecord": false,
     "flushEveryRecords": 1000,
-    "statisticsSaveIntervalTicks": 100
+    "statisticsSaveIntervalTicks": 100,
+    "enableStatRecording": true,
+    "statFlushEveryRecords": 50
   }
 }
