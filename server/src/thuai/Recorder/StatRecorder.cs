@@ -150,6 +150,25 @@ public class StatRecorder : IDisposable
                     targetPlayer = skill.TargetPlayer
                 });
             }
+
+            foreach (var trade in td.TradesThisDay)
+            {
+                Record(new
+                {
+                    type = "trade",
+                    month,
+                    tick = trade.Tick,
+                    tradeId = trade.TradeId,
+                    buyOrderId = trade.BuyOrderId,
+                    sellOrderId = trade.SellOrderId,
+                    buyerToken = trade.BuyerToken,
+                    sellerToken = trade.SellerToken,
+                    price = trade.Price,
+                    quantity = trade.Quantity,
+                    buyerFee = trade.BuyerFee,
+                    sellerFee = trade.SellerFee
+                });
+            }
         }
 
         _previousStage = currentStage;
