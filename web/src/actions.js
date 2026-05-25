@@ -121,5 +121,6 @@ function toInteger(value) {
 function toPlayerId(value) {
   if (value === undefined || value === null || value === "") return undefined;
   const number = Number(value);
-  return Number.isFinite(number) && number >= 0 ? number : undefined;
+  if (!Number.isFinite(number) || number < 0 || !Number.isInteger(number)) return undefined;
+  return number;
 }

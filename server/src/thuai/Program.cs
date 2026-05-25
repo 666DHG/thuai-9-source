@@ -463,8 +463,13 @@ public class Program
 
         var winnerPlayerId = game.FindPlayer(settlement.WinnerToken)?.PlayerId ?? -1;
         var finalBonusWinnerPlayerId = game.FindPlayer(settlement.FinalBonusWinnerToken)?.PlayerId ?? -1;
-        var cumulativeNavsById = settlement.CumulativeNavs
-            .ToDictionary(kvp => game.FindPlayer(kvp.Key)?.PlayerId ?? -1, kvp => kvp.Value);
+        var cumulativeNavsById = new Dictionary<int, long>();
+        foreach (var (token, nav) in settlement.CumulativeNavs)
+        {
+            var player = game.FindPlayer(token);
+            if (player != null)
+                cumulativeNavsById[player.PlayerId] = nav;
+        }
 
         return new DaySettlementMessage
         {

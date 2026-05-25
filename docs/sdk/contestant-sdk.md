@@ -287,24 +287,24 @@ activateSkill(skillName, "buy");
 选择策略：
 
 ```python
-await self.select_strategy(“内幕消息”)
+await self.select_strategy("内幕消息")
 ```
 
 ```cpp
-selectStrategy(“内幕消息”);
+selectStrategy("内幕消息");
 ```
 
 激活技能：
 
 ```python
-await self.activate_skill(“网络风暴”, target_player_id=1)
+await self.activate_skill("网络风暴", target_player_id=1)
 ```
 
 ```cpp
-activateSkill(“网络风暴”, 1);
+activateSkill("网络风暴", 1);
 ```
 
-`target_player_id` 当前主要用于”网络风暴”，指定目标选手的 PlayerID。通过 `get_all_player_ids()` / `getAllPlayerIds()` 获取所有在线选手的 ID 列表。
+`target_player_id` 当前主要用于“网络风暴”，指定目标选手的 PlayerID。通过 `get_all_player_ids()` / `getAllPlayerIds()` 获取所有在线选手的 ID 列表。
 
 获取所有选手 ID：
 
