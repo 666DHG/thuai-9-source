@@ -59,11 +59,13 @@ class Agent:  # pylint: disable=too-many-instance-attributes
 
         self._ws = await connect(self.server_url)
         logger.info("Connected to %s", self.server_url)
-        await self._send({
-            "messageType": "HELLO",
-            "token": self.token,
-            "role": "player",
-        })
+        await self._send(
+            {
+                "messageType": "HELLO",
+                "token": self.token,
+                "role": "player",
+            }
+        )
 
     async def disconnect(self) -> None:
         """Close the websocket connection if it is currently open."""

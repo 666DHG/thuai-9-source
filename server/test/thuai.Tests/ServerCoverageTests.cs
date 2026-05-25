@@ -636,7 +636,7 @@ public class TradingDayCoverageTests
     [Fact]
     public void HandleSubmitReport_SettlesReportsAndPublishesNotifications()
     {
-        var (day, players) = CreateTradingDay(maxTicks: 5);
+        var (day, _) = CreateTradingDay(maxTicks: 5);
         day.OrderBook.Clear();
         day.OrderBook.UpdateLastPrice(1000);
 
@@ -646,11 +646,13 @@ public class TradingDayCoverageTests
 
         day.Tick();
         day.Tick();
+        day.OrderBook.Clear();
         day.OrderBook.UpdateLastPrice(2000);
         day.Tick();
 
         Assert.Equal(2, day.SettledReportsThisDay.Count);
-        Assert.True(players["alpha"].Mora > players["beta"].Mora);
+        Assert.Contains(day.SettledReportsThisDay, r => r.PlayerToken == "alpha" && r.IsCorrect == true && r.Reward > 0);
+        Assert.Contains(day.SettledReportsThisDay, r => r.PlayerToken == "beta" && r.IsCorrect == false && r.Reward < 0);
         Assert.True(day.HasPendingNotifications);
 
         day.MarkNotificationsPublished();
