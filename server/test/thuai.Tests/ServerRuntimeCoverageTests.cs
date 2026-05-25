@@ -53,12 +53,12 @@ public class AdminCommandHandlerCoverageTests
 
         var giveMissingPlayer = Assert.IsType<DebugAckMessage>(AdminCommandHandler.Handle(
             tradingGame,
-            new DebugGiveCardMessage { TargetToken = "ghost", CardName = "闪电交易" }));
+            new DebugGiveCardMessage { TargetPlayerId = 999, CardName = "闪电交易" }));
         Assert.False(giveMissingPlayer.Ok);
 
         var giveUnknownCard = Assert.IsType<DebugAckMessage>(AdminCommandHandler.Handle(
             tradingGame,
-            new DebugGiveCardMessage { TargetToken = "alpha", CardName = "不存在的卡" }));
+            new DebugGiveCardMessage { TargetPlayerId = 0, CardName = "不存在的卡" }));
         Assert.False(giveUnknownCard.Ok);
 
         var availableCard = new[] { "内幕消息", "闪电交易", "止损名刀", "定向增发", "网络风暴", "舆情打击" }
@@ -66,13 +66,13 @@ public class AdminCommandHandlerCoverageTests
 
         var giveCard = Assert.IsType<DebugAckMessage>(AdminCommandHandler.Handle(
             tradingGame,
-            new DebugGiveCardMessage { TargetToken = "alpha", CardName = availableCard }));
+            new DebugGiveCardMessage { TargetPlayerId = 0, CardName = availableCard }));
         Assert.True(giveCard.Ok);
         Assert.Contains(tradingGame.FindPlayer("alpha")!.ActiveCards, card => card.Name == availableCard);
 
         var duplicateCard = Assert.IsType<DebugAckMessage>(AdminCommandHandler.Handle(
             tradingGame,
-            new DebugGiveCardMessage { TargetToken = "alpha", CardName = availableCard }));
+            new DebugGiveCardMessage { TargetPlayerId = 0, CardName = availableCard }));
         Assert.False(duplicateCard.Ok);
 
         var invalidSentiment = Assert.IsType<DebugAckMessage>(AdminCommandHandler.Handle(
@@ -94,12 +94,12 @@ public class AdminCommandHandlerCoverageTests
 
         var setMissingPlayer = Assert.IsType<DebugAckMessage>(AdminCommandHandler.Handle(
             tradingGame,
-            new DebugSetPlayerMessage { TargetToken = "ghost", Mora = 10 }));
+            new DebugSetPlayerMessage { TargetPlayerId = 999, Mora = 10 }));
         Assert.False(setMissingPlayer.Ok);
 
         var setPlayer = Assert.IsType<DebugAckMessage>(AdminCommandHandler.Handle(
             tradingGame,
-            new DebugSetPlayerMessage { TargetToken = "alpha", Mora = 54321, Gold = 12 }));
+            new DebugSetPlayerMessage { TargetPlayerId = 0, Mora = 54321, Gold = 12 }));
         Assert.True(setPlayer.Ok);
         Assert.Equal(54321, tradingGame.FindPlayer("alpha")!.Mora);
         Assert.Equal(12, tradingGame.FindPlayer("alpha")!.Gold);
@@ -132,12 +132,12 @@ public class GameControllerRuntimeCoverageTests
     public void HandleAfterMessageReceiveEvent_RoutesStrategyAndTradingActions()
     {
         var controller = new Controller(TestServerHelpers.FastSettings());
+        controller.Game.Initialize();
         controller.HandleAfterPlayerConnectEvent(null,
             new AgentServer.AfterPlayerConnectEventArgs { SocketId = Guid.NewGuid(), Token = "alpha" });
         controller.HandleAfterPlayerConnectEvent(null,
             new AgentServer.AfterPlayerConnectEventArgs { SocketId = Guid.NewGuid(), Token = "beta" });
 
-        controller.Game.Initialize();
         controller.Game.Tick();
         controller.Game.Tick();
         Assert.Equal(GameStage.StrategySelection, controller.Game.Stage);
@@ -618,7 +618,7 @@ public class ProgramRuntimeCoverageTests
             SellerFee = 2
         });
         TestServerHelpers.GetPrivateField<List<SkillActivation>>(day, "_skillEffectsThisDay").Add(
-            new SkillActivation("alpha", "闪电交易", "bonus action"));
+            new SkillActivation(0, "闪电交易", "bonus action"));
 
         TestServerHelpers.InvokePrivateStatic(typeof(Program), "BroadcastGameState", server, game);
 

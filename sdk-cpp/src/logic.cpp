@@ -81,7 +81,8 @@ class MyAgent final : public thuai::Agent {
 
   void onStrategyOptions(const thuai::StrategyOptions& options) override {
     if (lastStrategySelectionMonth_ == gameState.currentMonth) {
-      spdlog::debug("Strategy already selected for month {}", gameState.currentMonth);
+      spdlog::debug("Strategy already selected for month {}",
+                    gameState.currentMonth);
       return;
     }
 
@@ -121,15 +122,17 @@ class MyAgent final : public thuai::Agent {
 
   void onSkillEffect(const thuai::SkillEffect& effect) override {
     spdlog::info("Skill effect: skill={} source={} target={} description={}",
-                 effect.skillName, effect.sourcePlayer,
-                 effect.targetPlayer.value_or("none"), effect.description);
+                 effect.skillName, effect.sourcePlayerId,
+                 effect.targetPlayerId.has_value()
+                     ? std::to_string(*effect.targetPlayerId)
+                     : "none",
+                 effect.description);
   }
 
   void onDaySettlement(const thuai::DaySettlement& settlement) override {
-    spdlog::info(
-        "Settlement: month={} day={} winner={} reason={} players={}",
-        settlement.month, settlement.day, settlement.winnerToken,
-        settlement.reason, settlement.players.size());
+    spdlog::info("Settlement: month={} day={} winner={} reason={} players={}",
+                 settlement.month, settlement.day, settlement.winnerPlayerId,
+                 settlement.reason, settlement.players.size());
   }
 
   void onError(int code, const std::string& message) override {
@@ -144,7 +147,7 @@ class MyAgent final : public thuai::Agent {
 
 }  // namespace
 
-auto createAgent(std::string token,
-                 std::string serverUrl) -> std::unique_ptr<thuai::Agent> {
+auto createAgent(std::string token, std::string serverUrl)
+    -> std::unique_ptr<thuai::Agent> {
   return std::make_unique<MyAgent>(std::move(token), std::move(serverUrl));
 }

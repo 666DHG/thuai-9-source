@@ -61,16 +61,23 @@ class Agent {
     send(protocol::buildSelectStrategyMessage(token_, cardName));
   }
 
-  void activateSkill(const std::string& skillName,
-                     const std::string& targetToken = "",
+  void activateSkill(const std::string& skillName, int targetPlayerId = -1,
                      const std::string& variant = "") {
-    spdlog::debug("Queueing skill activation name={} target={} variant={}",
-                  skillName, targetToken.empty() ? "none" : targetToken,
-                  variant.empty() ? "none" : variant);
+    spdlog::debug(
+        "Queueing skill activation name={} targetPlayerId={} variant={}",
+        skillName, targetPlayerId, variant.empty() ? "none" : variant);
     send(protocol::buildActivateSkillMessage(
         token_, skillName,
-        targetToken.empty() ? std::nullopt : std::make_optional(targetToken),
+        targetPlayerId >= 0 ? std::make_optional(targetPlayerId) : std::nullopt,
         variant.empty() ? std::nullopt : std::make_optional(variant)));
+  }
+
+  auto getAllPlayerIds() const -> std::vector<int> {
+    std::vector<int> ids;
+    for (const auto& score : gameState.scores) {
+      ids.push_back(score.playerId);
+    }
+    return ids;
   }
 
   // --- State ---
@@ -218,16 +225,22 @@ class Agent {
       } else if (msgType == "SKILL_EFFECT") {
         const auto effect = protocol::parseSkillEffect(data);
         spdlog::debug(
-            "Parsed skill effect skill={} source={} target={} description={}",
-            effect.skillName, effect.sourcePlayer,
-            effect.targetPlayer.value_or("none"), effect.description);
+            "Parsed skill effect skill={} sourcePlayerId={} targetPlayerId={} "
+            "description={}",
+            effect.skillName, effect.sourcePlayerId,
+            effect.targetPlayerId.has_value()
+                ? std::to_string(*effect.targetPlayerId)
+                : "none",
+            effect.description);
         onSkillEffect(effect);
       } else if (msgType == "DAY_SETTLEMENT") {
         latestDaySettlement = protocol::parseDaySettlement(data);
         spdlog::debug(
-            "Parsed day settlement month={} day={} winner={} players={}",
+            "Parsed day settlement month={} day={} winnerPlayerId={} "
+            "players={}",
             latestDaySettlement->month, latestDaySettlement->day,
-            latestDaySettlement->winnerToken, latestDaySettlement->players.size());
+            latestDaySettlement->winnerPlayerId,
+            latestDaySettlement->players.size());
         onDaySettlement(*latestDaySettlement);
       } else if (msgType == "ERROR") {
         const int code = data.value("errorCode", 0);

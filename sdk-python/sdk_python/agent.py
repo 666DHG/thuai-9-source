@@ -55,11 +55,15 @@ class Agent:  # pylint: disable=too-many-instance-attributes
         self.strategy_options: Optional[StrategyOptions] = None
 
     async def connect(self) -> None:
-        """Open the websocket connection and register with a sentinel cancel."""
+        """Open the websocket connection and send HELLO."""
 
         self._ws = await connect(self.server_url)
         logger.info("Connected to %s", self.server_url)
-        await self.cancel_order(-1)
+        await self._send({
+            "messageType": "HELLO",
+            "token": self.token,
+            "role": "player",
+        })
 
     async def disconnect(self) -> None:
         """Close the websocket connection if it is currently open."""
@@ -130,21 +134,26 @@ class Agent:  # pylint: disable=too-many-instance-attributes
     async def activate_skill(
         self,
         skill_name: str,
-        target_token: Optional[str] = None,
+        target_player_id: Optional[int] = None,
         variant: Optional[str] = None,
     ) -> None:
-        """Activate a skill, optionally targeting a player or variant."""
+        """Activate a skill, optionally targeting a player by ID or variant."""
 
         msg: OutgoingMessage = {
             "messageType": "ACTIVATE_SKILL",
             "token": self.token,
             "skillName": skill_name,
         }
-        if target_token:
-            msg["targetToken"] = target_token
+        if target_player_id is not None:
+            msg["targetPlayerId"] = target_player_id
         if variant:
             msg["variant"] = variant
         await self._send(msg)
+
+    def get_all_player_ids(self) -> list[int]:
+        """Return the list of all player IDs from the latest game state scores."""
+
+        return [s.player_id for s in self.game_state.scores]
 
     # --- Event Loop ---
 

@@ -144,10 +144,10 @@ public class StatRecorder : IDisposable
                     type = "skill",
                     month,
                     tick = game.CurrentTick,
-                    sourcePlayer = skill.SourcePlayer,
+                    sourcePlayerId = skill.SourcePlayerId,
                     skillName = skill.SkillName,
                     description = skill.Description,
-                    targetPlayer = skill.TargetPlayer
+                    targetPlayerId = skill.TargetPlayerId
                 });
             }
         }

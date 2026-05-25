@@ -2,7 +2,7 @@ namespace Thuai.GameLogic;
 
 using Thuai.GameLogic.StrategyCards;
 
-public record SkillActivation(string SourcePlayer, string SkillName, string Description, string? TargetPlayer = null);
+public record SkillActivation(int SourcePlayerId, string SkillName, string Description, int? TargetPlayerId = null);
 
 public class TradingDay
 {
@@ -183,12 +183,20 @@ public class TradingDay
         }
     }
 
-    public bool HandleActivateSkill(string playerToken, string skillName, string? targetToken = null, string? variant = null)
+    public bool HandleActivateSkill(string playerToken, string skillName, int? targetPlayerId = null, string? variant = null)
     {
         lock (_lock)
         {
             if (_isFinished) return false;
             if (!_players.TryGetValue(playerToken, out var player)) return false;
+
+            string? targetToken = null;
+            if (targetPlayerId.HasValue)
+            {
+                var targetPlayer = _players.Values.FirstOrDefault(p => p.PlayerId == targetPlayerId.Value);
+                if (targetPlayer == null) return false;
+                targetToken = targetPlayer.Token;
+            }
 
             var card = StrategyCardManager.FindActiveCard(player, skillName);
             if (card == null) return false;
@@ -353,7 +361,7 @@ public class TradingDay
         player.AddMora(-cost);
         insider.Activate(player, _currentTick, nextNewsDay, cheapMode, previewIsFake);
         _skillEffectsThisDay.Add(new SkillActivation(
-            player.Token,
+            player.PlayerId,
             insider.Name,
             cheapMode ? $"cheap preview for day {nextNewsDay}" : $"premium preview for day {nextNewsDay}"));
         return true;
@@ -366,7 +374,7 @@ public class TradingDay
 
         player.AddMora(-flash.ActivationCost);
         flash.OnActivate(player, _currentTick);
-        _skillEffectsThisDay.Add(new SkillActivation(player.Token, flash.Name, "gains one extra immediate trade for the next 3 days"));
+        _skillEffectsThisDay.Add(new SkillActivation(player.PlayerId, flash.Name, "gains one extra immediate trade for the next 3 days"));
         return true;
     }
 
@@ -382,7 +390,7 @@ public class TradingDay
 
         player.AddMora(-blade.ActivationCost);
         blade.Activate(player, _currentTick, _orderBook.MidPrice);
-        _skillEffectsThisDay.Add(new SkillActivation(player.Token, blade.Name, "all open orders cancelled and downside protection enabled"));
+        _skillEffectsThisDay.Add(new SkillActivation(player.PlayerId, blade.Name, "all open orders cancelled and downside protection enabled"));
         return true;
     }
 
@@ -400,7 +408,7 @@ public class TradingDay
         player.AddMora(-cost);
         player.AddLockedGold(targeted.PurchaseQuantity, _currentTick + targeted.LockDuration);
         targeted.MarkUsed();
-        _skillEffectsThisDay.Add(new SkillActivation(player.Token, targeted.Name, $"bought {targeted.PurchaseQuantity} locked gold at {discountPrice}"));
+        _skillEffectsThisDay.Add(new SkillActivation(player.PlayerId, targeted.Name, $"bought {targeted.PurchaseQuantity} locked gold at {discountPrice}"));
         return true;
     }
 
@@ -416,7 +424,7 @@ public class TradingDay
         player.AddMora(-storm.ActivationCost);
         targetPlayer.AddNextOrderExtraDelayDays(1);
         storm.MarkUsed();
-        _skillEffectsThisDay.Add(new SkillActivation(player.Token, storm.Name, "next order delayed by 1 day", targetToken));
+        _skillEffectsThisDay.Add(new SkillActivation(player.PlayerId, storm.Name, "next order delayed by 1 day", targetPlayer.PlayerId));
         return true;
     }
 
@@ -440,7 +448,7 @@ public class TradingDay
             other.PendingCheapInsiderCorruption = true;
         }
 
-        _skillEffectsThisDay.Add(new SkillActivation(player.Token, attack.Name, "broadcasted a fake market news item"));
+        _skillEffectsThisDay.Add(new SkillActivation(player.PlayerId, attack.Name, "broadcasted a fake market news item"));
         return true;
     }
 }

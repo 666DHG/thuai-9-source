@@ -199,8 +199,8 @@ export function applyMessage(state, message) {
       break;
 
     case "PLAYER_SUMMARY_STATE":
-      if (message.token) {
-        state.playerSummaries[message.token] = { ...message };
+      if (message.playerId !== undefined) {
+        state.playerSummaries[message.playerId] = { ...message };
       }
       break;
 
@@ -244,7 +244,7 @@ export function applyMessage(state, message) {
       pushEvent(state, {
         kind: "skill",
         title: message.skillName || "技能触发",
-        detail: `${message.sourcePlayer || "-"} ${message.description || ""}`.trim(),
+        detail: `${playerDisplayName(state, message.sourcePlayerId)} ${message.description || ""}`.trim(),
       });
       break;
 
@@ -255,7 +255,7 @@ export function applyMessage(state, message) {
       pushEvent(state, {
         kind: "settlement",
         title: `第 ${message.day ?? state.game.currentDay} 日结算`,
-        detail: `winner=${message.winnerToken || "-"} reason=${message.reason || "-"}`,
+        detail: `winner=${message.winnerPlayerId >= 0 ? playerDisplayName(state, message.winnerPlayerId) : "Tie"} reason=${message.reason || "-"}`,
       });
       break;
 
@@ -298,7 +298,7 @@ function upsertDailySummary(state, message) {
   const day = numberOr(message.day, state.game.currentDay);
   const summary = {
     day,
-    winnerToken: message.winnerToken || "",
+    winnerPlayerId: numberOr(message.winnerPlayerId, -1),
     reason: message.reason || "",
     players: Array.isArray(message.players) ? message.players : [],
   };
@@ -389,6 +389,7 @@ function appendMarketSnapshot(state) {
 
 function normalizePlayerState(message) {
   return {
+    playerId: numberOr(message.playerId, -1),
     mora: numberOr(message.mora, 0),
     frozenMora: numberOr(message.frozenMora, 0),
     gold: numberOr(message.gold, 0),
@@ -402,6 +403,7 @@ function normalizePlayerState(message) {
 
 function emptyPlayerState() {
   return {
+    playerId: -1,
     mora: 0,
     frozenMora: 0,
     gold: 0,
@@ -416,4 +418,12 @@ function emptyPlayerState() {
 function numberOr(value, fallback) {
   const number = Number(value);
   return Number.isFinite(number) ? number : fallback;
+}
+
+export function playerDisplayName(state, playerId) {
+  if (playerId === undefined || playerId === null || playerId < 0) return "-";
+  if (playerId === state.player.playerId && state.connection.token) {
+    return state.connection.token;
+  }
+  return `选手 ${playerId}`;
 }

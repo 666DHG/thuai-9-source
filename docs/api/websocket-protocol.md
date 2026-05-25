@@ -15,37 +15,38 @@
 - 分发字段：`messageType`
 - `null` 字段：服务端序列化时会忽略
 
-当前实现只支持 `player` 连接，不支持显式 `HELLO` 握手，也不支持 `observer` 角色。
+当前实现支持 `player`、`observer` 和 `admin` 三种角色，支持显式 `HELLO` 握手。PlayerID 为 server 分配的整数标识，用于指代选手，避免 TOKEN 泄露。
 
 ## 实现状态
 
 | 能力 | 当前状态 | 说明 |
 | --- | --- | --- |
 | Player 动作消息 | 已实现 | `LIMIT_BUY`、`LIMIT_SELL`、`CANCEL_ORDER`、`SUBMIT_REPORT`、`SELECT_STRATEGY`、`ACTIVATE_SKILL` |
-| Socket 懒绑定 | 已实现 | 第一条带 `token` 的动作消息会绑定 socket |
-| `GAME_STATE` | 已发送 | 每个 game tick 广播给已绑定 player |
-| `MARKET_STATE` | 已发送 | `TradingDay` 和 `Settlement` 阶段发给每个 player |
-| `PLAYER_STATE` | 已发送 | `TradingDay` 和 `Settlement` 阶段发给对应 player |
+| `HELLO` 握手 | 已实现 | 支持 player / observer / admin 三种角色 |
+| Socket 懒绑定 | 已实现 | 第一条带 `token` 的动作消息也会绑定 socket（兼容旧版） |
+| `GAME_STATE` | 已发送 | 每个 game tick 广播 |
+| `MARKET_STATE` | 已发送 | `TradingDay` 和 `Settlement` 阶段广播 |
+| `PLAYER_STATE` | 已发送 | 私发对应 player，包含 `playerId` |
 | `STRATEGY_OPTIONS` | 已发送 | `StrategySelection` 阶段广播 |
 | `NEWS_BROADCAST` | 已发送 | 公共新闻、伪造新闻、内幕预览共用同一 schema |
 | `REPORT_RESULT` | 已发送 | 仅发送给提交该研报的 player |
 | `TRADE_NOTIFICATION` | 已发送 | 成交时分别发送给买方和卖方 |
 | `SKILL_EFFECT` | 已发送 | 技能触发后广播给所有 player |
-| `DAY_SETTLEMENT` | 已发送 | 实际上用于“月结算” |
-| `ERROR` | 仅 schema 存在 | 当前普通动作失败大多静默忽略，不主动发 `ERROR` |
-| `HELLO` / `HELLO_ACK` | 未实现 | 当前没有显式握手消息 |
-| Observer 连接 | 未实现 | 当前没有观战协议 |
-| `PLAYER_SUMMARY_STATE` | 未实现 | 当前没有 observer 摘要协议 |
+| `DAY_SETTLEMENT` | 已发送 | 月结算广播 |
+| `ERROR` | 已发送 | 校验错误等 |
+| Observer 连接 | 已实现 | 接收公共广播和未伪造新闻 |
+| Admin 连接 | 已实现 | 支持 DEBUG 系列命令 |
+| `PLAYER_SUMMARY_STATE` | 已发送 | Observer 接收的选手摘要 |
 
 ## 连接生命周期
 
 当前实现的连接流程：
 
 1. Client 建立 WebSocket。
-2. Client 发送任意一条带 `token` 的 player 动作消息。
-3. Server 将该 socket 绑定到对应 `token`。
+2. Client 发送 `HELLO` 消息（player 角色需带 `token`）。
+3. Server 绑定 socket。通过 `PLAYER_STATE` 返回分配的 `playerId`。
 4. 之后在下一次服务端 tick 广播时开始收到快照和事件消息。
-5. Client 断线重连后，需要再次发送带 `token` 的动作消息重新绑定。
+5. Client 断线重连后，需重新发送 `HELLO`。
 
 说明：
 
@@ -157,7 +158,7 @@
 | 字段 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
 | `skillName` | string | 是 | 技能名 |
-| `targetToken` | string | 否 | 当前用于 `网络风暴` 指定目标 |
+| `targetPlayerId` | int | 否 | 当前用于 `网络风暴` 指定目标 |
 | `variant` | string | 否 | 当前用于 `内幕消息`，支持 `"cheap"` |
 
 已实现的主动技能参数约定：
@@ -166,7 +167,7 @@
 - `闪电交易`：无额外参数。
 - `止损名刀`：无额外参数。
 - `定向增发`：无额外参数。
-- `网络风暴`：需要 `targetToken`。
+- `网络风暴`：需要 `targetPlayerId`。
 - `舆情打击`：无额外参数。
 
 示例 1：网络风暴
@@ -176,7 +177,7 @@
   "messageType": "ACTIVATE_SKILL",
   "token": "player1",
   "skillName": "网络风暴",
-  "targetToken": "player2"
+  "targetPlayerId": 1
 }
 ```
 
@@ -257,6 +258,7 @@
 ```json
 {
   "messageType": "PLAYER_STATE",
+  "playerId": 0,
   "mora": 980000,
   "frozenMora": 20000,
   "gold": 1005,
@@ -397,8 +399,8 @@
 {
   "messageType": "SKILL_EFFECT",
   "skillName": "网络风暴",
-  "sourcePlayer": "player1",
-  "targetPlayer": "player2",
+  "sourcePlayerId": 0,
+  "targetPlayerId": 1,
   "description": "next order delayed by 1 day"
 }
 ```
@@ -408,8 +410,8 @@
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
 | `skillName` | string | 技能名 |
-| `sourcePlayer` | string | 触发者 token |
-| `targetPlayer` | string/null | 目标 token，没有目标时省略 |
+| `sourcePlayerId` | int | 触发者 PlayerID |
+| `targetPlayerId` | int/null | 目标 PlayerID，没有目标时省略 |
 | `description` | string | 服务端生成的效果描述 |
 
 ### DAY_SETTLEMENT
@@ -421,17 +423,17 @@
   "messageType": "DAY_SETTLEMENT",
   "day": 2,
   "month": 2,
-  "winnerToken": "player1",
+  "winnerPlayerId": 0,
   "reason": "higher NAV",
   "cumulativeNavs": {
-    "player1": 4050000,
-    "player2": 3980000
+    "0": 4050000,
+    "1": 3980000
   },
-  "finalBonusWinnerToken": "",
+  "finalBonusWinnerPlayerId": -1,
   "finalBonusPoints": 0,
   "players": [
     {
-      "token": "player1",
+      "playerId": 0,
       "nav": 2034500,
       "mora": 1034500,
       "gold": 1000,
@@ -450,7 +452,7 @@
 - 该消息在每个月结算时发送一次。
 - `month` 是权威字段。
 - 当前服务端会把 `day` 也填成同样的月份编号；客户端如果要展示月份，请使用 `month`。
-- `finalBonusWinnerToken` 和 `finalBonusPoints` 只会在第 3 个月结算时有意义。
+- `finalBonusWinnerPlayerId` 和 `finalBonusPoints` 只会在第 3 个月结算时有意义（胜者 PlayerID，无胜者时为 -1）。
 
 ### ERROR
 
@@ -495,13 +497,3 @@ Waiting -> PreparingGame -> StrategySelection -> TradingDay -> Settlement
 - `TradingDay` / `Settlement` 阶段的每个 tick：发送 `MARKET_STATE` 和 `PLAYER_STATE`。
 - `StrategySelection` 阶段的每个 tick：发送 `STRATEGY_OPTIONS`。
 - 新闻、技能、成交、研报结算等事件，会在下一次广播周期里附带发送。
-
-## 当前未实现的旧设计项
-
-以下能力仍出现在历史设计文档或旧前端设想中，但当前服务端未实现：
-
-- `HELLO`
-- `HELLO_ACK`
-- `observer` 角色
-- `PLAYER_SUMMARY_STATE`
-- 连接后立即补发全量快照

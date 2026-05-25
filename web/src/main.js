@@ -19,6 +19,7 @@ import {
   clearSettlement,
   createInitialState,
   markNewsAsRead,
+  playerDisplayName,
   pushEvent,
   resetUiCollections,
   routeFromLocation,
@@ -94,9 +95,9 @@ function bindControls() {
       return;
     }
 
-    const playerButton = event.target.closest("[data-player-token]");
+    const playerButton = event.target.closest("[data-player-id]");
     if (playerButton) {
-      showPlayerDetail(playerButton.dataset.playerToken);
+      showPlayerDetail(Number(playerButton.dataset.playerId));
     }
   });
 
@@ -394,7 +395,7 @@ function handleSkill(event) {
   sendAction(activateSkillMessage(
     state.connection.token,
     String(data.get("skillName") || "").trim(),
-    data.get("direction"),
+    data.get("targetPlayerId"),
   ));
 }
 
@@ -427,7 +428,7 @@ function handleDebugGiveCard(event) {
   event.preventDefault();
   const data = new FormData(event.currentTarget);
   sendAction(debugGiveCardMessage(
-    String(data.get("targetToken") || "").trim(),
+    String(data.get("targetPlayerId") || "").trim(),
     String(data.get("cardName") || "").trim(),
   ));
 }
@@ -445,7 +446,7 @@ function handleDebugSetPlayer(event) {
   event.preventDefault();
   const data = new FormData(event.currentTarget);
   sendAction(debugSetPlayerMessage(
-    String(data.get("targetToken") || "").trim(),
+    String(data.get("targetPlayerId") || "").trim(),
     {
       mora: data.get("mora"),
       gold: data.get("gold"),
@@ -477,13 +478,13 @@ function showSummaryDetail(day) {
   body.innerHTML = `
     <section class="detail-section">
       <h3>结算结果</h3>
-      <p>胜者：${escapeHtml(summary.winnerToken || "Tie")}</p>
+      <p>胜者：${escapeHtml(summary.winnerPlayerId >= 0 ? playerDisplayName(state, summary.winnerPlayerId) : "Tie")}</p>
       <p>原因：${escapeHtml(summary.reason || "-")}</p>
     </section>
     <div class="detail-grid">
       ${(summary.players || []).map((player) => `
         <section class="detail-section">
-          <h3>${escapeHtml(player.token)}</h3>
+          <h3>${escapeHtml(playerDisplayName(state, player.playerId))}</h3>
           <p>NAV：${escapeHtml(player.nav)}</p>
           <p>Mora：${escapeHtml(player.mora)}</p>
           <p>Gold：${escapeHtml(player.gold)}</p>
@@ -498,8 +499,8 @@ function showSummaryDetail(day) {
   openModal("detailModal");
 }
 
-function showPlayerDetail(token) {
-  const player = state.playerSummaries[token];
+function showPlayerDetail(playerId) {
+  const player = state.playerSummaries[playerId];
   if (!player) return;
   const body = document.getElementById("detailModalBody");
   const title = document.getElementById("detailModalTitle");
@@ -507,7 +508,7 @@ function showPlayerDetail(token) {
   if (!body || !title || !eyebrow) return;
 
   eyebrow.textContent = "操盘手";
-  title.textContent = `${token} 摘要`;
+  title.textContent = `${playerDisplayName(state, playerId)} 摘要`;
   body.innerHTML = `
     <section class="detail-section">
       <h3>当前状态</h3>
@@ -560,7 +561,11 @@ function actionDetail(message) {
     return String(message.cardName || "");
   }
   if (message.messageType === "ACTIVATE_SKILL") {
-    return `${message.skillName || ""} ${message.direction || ""}`.trim();
+    const parts = [message.skillName || ""];
+    if (message.targetPlayerId !== undefined && message.targetPlayerId !== null && message.targetPlayerId !== "") {
+      parts.push(`target=选手 ${message.targetPlayerId}`);
+    }
+    return parts.filter(Boolean).join(" ");
   }
   return message.messageType;
 }

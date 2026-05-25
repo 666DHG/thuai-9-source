@@ -265,25 +265,24 @@ activateSkill(skillName, "buy");
 
 ## 规则限制
 
-- 每场 3 个交易日。
-- 每个交易日默认 2000 Tick。
-- 每个交易日初始资产为 1,000,000 Mora 与 1,000 Gold。
-- 默认网络延迟为 5 Tick。
+- 每场 3 个月，每月 30 天。
+- 每月初始资产为 1,000,000 摩拉与 1,000 单位黄金。
+- 默认网络延迟为 1 天（指令次日生效）。
 - 默认手续费率为 0.02%。
-- 每 Tick 每位选手最多 5 条交易指令。
-- 每 Tick 每位选手最多 1 条研报指令。
-- 新闻发布后默认 50 Tick 内可提交研报。
-- 新闻发布后 100 Tick 结算研报。
-- 策略选择阶段默认 40 Tick。
-- 熔断期间禁止新订单，撤单仍可执行。
+- 每天每位选手最多 1 次即时交易 + 1 次挂单。
+- 撤单不计入上限。
+- 新闻发布后 2 天内可提交研报。
+- 新闻发布后第 3 天结算研报。
+- 策略选择阶段 40 Tick。
+- 禁止杠杆与裸做空（除非策略卡触发）。
 
 ## 策略与技能
 
-策略卡分三类：
+策略卡共 6 张，分三类（每类 2 张）：
 
-- 基建：如高频专线、低延迟主板、内幕消息、量化集群、闪电交易。
-- 风控：如免流协议、冰山订单、止损名刀、定向增发。
-- 金融科技：如恶意做空、拔网线、暗池交易、舆情干预。
+- 基建：内幕消息、闪电交易。
+- 风控：止损名刀、定向增发。
+- 金融科技：网络风暴、舆情打击。
 
 选择策略：
 
@@ -298,14 +297,24 @@ selectStrategy("内幕消息");
 激活技能：
 
 ```python
-await self.activate_skill("暗池交易", direction="buy")
+await self.activate_skill("网络风暴", target_player_id=1)
 ```
 
 ```cpp
-activateSkill("暗池交易", "buy");
+activateSkill("网络风暴", 1);
 ```
 
-`direction` 当前主要用于“暗池交易”，取 `buy` 或 `sell`。
+`target_player_id` 当前主要用于“网络风暴”，指定目标选手的 PlayerID。通过 `get_all_player_ids()` / `getAllPlayerIds()` 获取所有在线选手的 ID 列表。
+
+获取所有选手 ID：
+
+```python
+ids = self.get_all_player_ids()  # 从 GameState.scores 提取
+```
+
+```cpp
+auto ids = getAllPlayerIds();  // 从 gameState.scores 提取
+```
 
 ## 常见陷阱
 
@@ -313,11 +322,11 @@ activateSkill("暗池交易", "buy");
 - 不要把 `market_state.volume` 当作单 Tick 成交量。
 - 下单前检查 `stage == "TradingDay"`。
 - 策略选择只在 `StrategySelection` 阶段有效。
-- 研报必须在新闻窗口内提交，默认 50 Tick。
+- 研报必须在新闻发布后 2 天内提交。
 - 限价卖出需要持有可用黄金，除非规则或策略明确允许。
-- 订单经过默认 5 Tick 网络延迟后才进入撮合。
-- 主动技能有 CD，调用失败时关注 `on_error` 或服务端日志。
-- 协议升级后优先发送 `HELLO`，但动作消息仍保留 token 以兼容日志和旧服务端。
+- 订单经过默认 1 天网络延迟后才进入撮合。
+- 主动技能有使用次数/CD限制，调用失败时关注 `on_error`。
+- 优先发送 `HELLO` 握手，通过 `PlayerState.playerId` 获取自己的 ID。
 
 ## 调试建议
 

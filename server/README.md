@@ -166,7 +166,7 @@ JSON messages over WebSocket with `messageType` discriminator.
 | `CANCEL_ORDER`    | `token`, `orderId`                 | Cancel a pending order                         |
 | `SUBMIT_REPORT`   | `token`, `newsId`, `prediction`    | Submit research report (`Long`/`Short`/`Hold`) |
 | `SELECT_STRATEGY` | `token`, `cardName`                | Select strategy card during draft              |
-| `ACTIVATE_SKILL`  | `token`, `skillName`, `direction?` | Activate FinTech active skill                  |
+| `ACTIVATE_SKILL`  | `token`, `skillName`, `targetPlayerId?`, `variant?` | 发动主动技能                        |
 
 ### Server → Client
 
@@ -199,35 +199,28 @@ JSON messages over WebSocket with `messageType` discriminator.
 
 ---
 
-## Strategy Cards (14 total)
+## Strategy Cards (6 total)
 
-### Infrastructure (基建类)
+### 基建类
 
-| Card       | Effect                                 |
-| ---------- | -------------------------------------- |
-| 高频专线   | Max orders per tick → 10               |
-| 低延迟主板 | Network delay -1 tick                  |
-| 内幕消息   | Receive news 3 ticks early             |
-| 量化集群   | Research window 80 ticks, decay halved |
-| 闪电交易   | Active: 0 network delay for 50 ticks   |
+| 卡名     | 效果                                       |
+| -------- | ------------------------------------------ |
+| 内幕消息 | 消耗摩拉提前获取新闻预览，低价版有50%概率为假 |
+| 闪电交易 | 消耗摩拉，接下来3天每天多一次即时交易       |
 
-### Risk Control (风控类)
+### 风控类
 
-| Card     | Effect                                                |
-| -------- | ----------------------------------------------------- |
-| 免流协议 | First 100k Mora in fees exempted (rate becomes 0.2%)  |
-| 冰山订单 | Orders show 10% quantity in book                      |
-| 止损名刀 | Auto-cancel + 20-tick immunity at 80% NAV             |
-| 定向增发 | Active: Buy 500 gold at 2% discount, locked 300 ticks |
+| 卡名     | 效果                                                   |
+| -------- | ------------------------------------------------------ |
+| 止损名刀 | 消耗摩拉撤销所有挂单，接下来3天下跌亏损降为原本的20%    |
+| 定向增发 | 以低于买一价2%折扣直接购入100单位黄金，锁定10天后解锁   |
 
-### FinTech (金融科技类)
+### 金融科技类（带冷却/使用次数限制）
 
-| Card     | Cooldown   | Effect                                              |
-| -------- | ---------- | --------------------------------------------------- |
-| 恶意做空 | 600 ticks  | 10 ticks of fake sell orders (visible to opponents) |
-| 拔网线   | 1000 ticks | 20-tick exchange freeze (only cancels allowed)      |
-| 暗池交易 | 800 ticks  | 100 units at mid-price, bypasses book               |
-| 舆情干预 | 1200 ticks | Broadcast fake news (auto-wrong for opponents)      |
+| 卡名     | 限制           | 效果                                         |
+| -------- | -------------- | -------------------------------------------- |
+| 网络风暴 | 全局3次        | 指定一名选手，其下一次交易/订单延迟1天        |
+| 舆情打击 | 全局1次        | 伪造一条新闻全网广播，干扰对手的新闻和廉价内幕 |
 
 ---
 
@@ -273,7 +266,7 @@ server/
 │   ├── GameController/               # Tick loop + message dispatch
 │   ├── GameLogic/                    # Core game logic
 │   │   ├── Game/                     # Master state machine
-│   │   ├── StrategyCards/            # 14 cards + draft manager
+│   │   ├── StrategyCards/            # 6 cards + draft manager
 │   │   └── ...                       # OrderBook, MatchEngine, NewsSystem, etc.
 │   ├── Protocol/Messages/            # JSON message types
 │   └── Recorder/                     # Replay recording

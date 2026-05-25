@@ -92,7 +92,7 @@ void limitSell(long price, int quantity);
 void cancelOrder(long orderId);
 void submitReport(int newsId, Prediction prediction);
 void selectStrategy(const std::string& cardName);
-void activateSkill(const std::string& skillName, const std::string& direction = "");
+void activateSkill(const std::string& skillName, int targetPlayerId = -1, const std::string& variant = "");
 ```
 
 #### Event Handlers (virtual, override what you need)
@@ -161,16 +161,18 @@ enum class Prediction { Long, Short, Hold };
 
 ## Strategy Cards
 
-| Card Name | Type             | Direction          | Notes                                         |
-| --------- | ---------------- | ------------------ | --------------------------------------------- |
-| 闪电交易  | Active (1/day)   | —                  | Network delay → 0 for 50 ticks                |
-| 定向增发  | Active (1/day)   | —                  | Buy 500 gold at 2% discount, locked 300 ticks |
-| 恶意做空  | Active (CD 600)  | —                  | Fake sell orders for 10 ticks                 |
-| 拔网线    | Active (CD 1000) | —                  | Exchange freeze 20 ticks                      |
-| 暗池交易  | Active (CD 800)  | `"buy"` / `"sell"` | 100 units at mid-price                        |
-| 舆情干预  | Active (CD 1200) | —                  | Inject fake news                              |
+6 张策略卡，分 3 类：
 
-Passive cards take effect automatically.
+| 卡名     | 类别       | 参数                      | 说明                                   |
+| -------- | ---------- | ------------------------- | -------------------------------------- |
+| 内幕消息 | 基建       | `variant: "cheap"` (可选)  | 提前获取新闻预览                       |
+| 闪电交易 | 基建       | —                         | 接下来3天每天多一次即时交易            |
+| 止损名刀 | 风控       | —                         | 撤销所有挂单，下跌保护                 |
+| 定向增发 | 风控       | —                         | 折扣购入锁定黄金                       |
+| 网络风暴 | 金融科技   | `targetPlayerId`          | 指定对手，其下一次订单延迟1天           |
+| 舆情打击 | 金融科技   | —                         | 伪造新闻广播，干扰对手                 |
+
+使用 `getAllPlayerIds()` 获取所有选手 ID。
 
 ---
 

@@ -1,6 +1,6 @@
 import { applyColorScheme, COLOR_SCHEMES, readAppliedPalette } from "./appearance.js";
 import { DEFAULT_LOCALHOST_PORT, DEFAULT_SERVER_URL, parseServerChoice } from "./connection.js";
-import { unreadNewsCount } from "./store.js";
+import { playerDisplayName, unreadNewsCount } from "./store.js";
 
 const PLACEHOLDER = '<p class="placeholder">暂无数据</p>';
 const MARKET_CHART_MIN_ZOOM = 0.12;
@@ -214,7 +214,7 @@ function renderScoreboard(state) {
   node.innerHTML = state.game.scores
     .map((score) => `
       <div class="score-row">
-        <span>${escapeHtml(score.token)}</span>
+        <span>${escapeHtml(playerDisplayName(state, score.playerId))}</span>
         <strong>${escapeHtml(score.score)}</strong>
       </div>
     `)
@@ -395,7 +395,7 @@ function renderDailySummaries(state) {
       <article class="day-summary">
         <div class="day-summary-head">
           <strong>Day ${escapeHtml(summary.day)}</strong>
-          <span>Winner: ${escapeHtml(summary.winnerToken || "Tie")}</span>
+          <span>Winner: ${escapeHtml(summary.winnerPlayerId >= 0 ? playerDisplayName(state, summary.winnerPlayerId) : "Tie")}</span>
           <button type="button" class="summary-link ghost-button" data-action="open-summary" data-summary-day="${escapeAttribute(summary.day)}">查看完整总结</button>
         </div>
       </article>
@@ -414,8 +414,8 @@ function renderPlayerComparison(state) {
 
   node.innerHTML = summaries
     .map((player) => `
-      <button type="button" class="comparison-card comparison-link" data-player-token="${escapeAttribute(player.token)}">
-        <h3>${escapeHtml(player.token)}</h3>
+      <button type="button" class="comparison-card comparison-link" data-player-id="${escapeAttribute(player.playerId)}">
+        <h3>${escapeHtml(playerDisplayName(state, player.playerId))}</h3>
       </button>
     `)
     .join("");
@@ -509,13 +509,13 @@ function renderSettlement(state) {
   body.innerHTML = `
     <div class="settlement-row">
       <span>胜者</span>
-      <strong>${escapeHtml(state.settlement.winnerToken || "-")}</strong>
+      <strong>${escapeHtml(state.settlement.winnerPlayerId >= 0 ? playerDisplayName(state, state.settlement.winnerPlayerId) : "Tie")}</strong>
       <span>${escapeHtml(state.settlement.reason || "-")}</span>
     </div>
     ${rows
       .map((player) => `
         <div class="settlement-row">
-          <span>${escapeHtml(player.token)}</span>
+          <span>${escapeHtml(playerDisplayName(state, player.playerId))}</span>
           <strong>NAV ${formatNumber(player.nav)}</strong>
           <span>${formatNumber(player.tradeCount)} 笔成交</span>
         </div>

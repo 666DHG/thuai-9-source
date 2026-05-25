@@ -32,6 +32,7 @@ public static class AdminCommandHandler
     {
         var players = game.GetPlayersSnapshot().Select(p => new DebugPlayerSnapshot
         {
+            PlayerId = p.PlayerId,
             Token = p.Token,
             Mora = p.Mora,
             FrozenMora = p.FrozenMora,
@@ -55,8 +56,8 @@ public static class AdminCommandHandler
             CurrentMonth = game.CurrentMonthNumber,
             CurrentDay = game.CurrentDayNumber,
             CurrentTick = game.CurrentTick,
-            Scoreboard = game.GetScoreboardSnapshot(),
-            CumulativeNavs = game.GetCumulativeNavsSnapshot(),
+            Scoreboard = ConvertToPlayerIdDict(game, game.GetScoreboardSnapshot()),
+            CumulativeNavs = ConvertToPlayerIdDict(game, game.GetCumulativeNavsSnapshot()),
             Players = players,
             Draft = draft
         };
@@ -64,9 +65,12 @@ public static class AdminCommandHandler
 
     private static DebugAckMessage HandleGiveCard(Game game, DebugGiveCardMessage msg)
     {
-        var player = game.FindPlayer(msg.TargetToken);
+        if (msg.TargetPlayerId is not { } targetId)
+            return Ack(msg.MessageType, false, "missing targetPlayerId");
+
+        var player = game.FindPlayerById(targetId);
         if (player == null)
-            return Ack(msg.MessageType, false, $"unknown token: {msg.TargetToken}");
+            return Ack(msg.MessageType, false, $"unknown playerId: {targetId}");
 
         IStrategyCard? card = msg.CardName switch
         {
@@ -120,9 +124,12 @@ public static class AdminCommandHandler
 
     private static DebugAckMessage HandleSetPlayer(Game game, DebugSetPlayerMessage msg)
     {
-        var player = game.FindPlayer(msg.TargetToken);
+        if (msg.TargetPlayerId is not { } targetId)
+            return Ack(msg.MessageType, false, "missing targetPlayerId");
+
+        var player = game.FindPlayerById(targetId);
         if (player == null)
-            return Ack(msg.MessageType, false, $"unknown token: {msg.TargetToken}");
+            return Ack(msg.MessageType, false, $"unknown playerId: {targetId}");
 
         if (msg.Mora.HasValue)
             player.AddMora(msg.Mora.Value - player.Mora);
@@ -132,5 +139,17 @@ public static class AdminCommandHandler
         Log.Information("DEBUG_SET_PLAYER: {Token} mora={Mora} gold={Gold}",
             player.Token, player.Mora, player.Gold);
         return Ack(msg.MessageType, true);
+    }
+
+    private static Dictionary<int, T> ConvertToPlayerIdDict<T>(Game game, Dictionary<string, T> source)
+    {
+        var result = new Dictionary<int, T>();
+        foreach (var (token, value) in source)
+        {
+            var player = game.FindPlayer(token);
+            if (player != null)
+                result[player.PlayerId] = value;
+        }
+        return result;
     }
 }

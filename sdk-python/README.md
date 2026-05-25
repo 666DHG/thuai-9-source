@@ -19,6 +19,12 @@ pip install websockets
 ### Run the example agent
 
 ```bash
+python main.py --token player1 --server ws://localhost:14514
+```
+
+You can still use environment variables if you prefer:
+
+```bash
 TOKEN=player1 SERVER=ws://localhost:14514 python main.py
 ```
 
@@ -76,6 +82,7 @@ Base class. Connects to the server, receives messages, dispatches events.
 | `agent.game_state`       | `GameState`               | Stage, day, tick, scoreboard                   |
 | `agent.market_state`     | `MarketState`             | Order book + prices                            |
 | `agent.player_state`     | `PlayerState`             | Your assets, NAV, pending orders, active cards |
+| `agent.player_state.player_id` | `int`                | 本选手的 PlayerID                              |
 | `agent.latest_news`      | `News \| None`            | Last received news                             |
 | `agent.strategy_options` | `StrategyOptions \| None` | Cards available during draft                   |
 
@@ -87,7 +94,7 @@ await agent.limit_sell(price: int, quantity: int)
 await agent.cancel_order(order_id: int)
 await agent.submit_report(news_id: int, prediction: Prediction)
 await agent.select_strategy(card_name: str)
-await agent.activate_skill(skill_name: str, direction: str | None = None)
+await agent.activate_skill(skill_name: str, target_player_id: int | None = None, variant: str | None = None)
 ```
 
 #### Event Handlers (override these)
@@ -154,16 +161,18 @@ See `sdk_python/models.py` for all types.
 
 ## Strategy Cards
 
-| Card Name | Type             | Direction          | Notes                                         |
-| --------- | ---------------- | ------------------ | --------------------------------------------- |
-| 闪电交易  | Active (1/day)   | —                  | Network delay → 0 for 50 ticks                |
-| 定向增发  | Active (1/day)   | —                  | Buy 500 gold at 2% discount, locked 300 ticks |
-| 恶意做空  | Active (CD 600)  | —                  | Fake sell orders for 10 ticks                 |
-| 拔网线    | Active (CD 1000) | —                  | Exchange freeze 20 ticks                      |
-| 暗池交易  | Active (CD 800)  | `"buy"` / `"sell"` | 100 units at mid-price                        |
-| 舆情干预  | Active (CD 1200) | —                  | Inject fake news                              |
+6 张策略卡，分 3 类（每类 2 张）：
 
-Passive cards (高频专线, 低延迟主板, 内幕消息, 量化集群, 免流协议, 冰山订单, 止损名刀) take effect automatically.
+| 卡名     | 类别       | 参数                     | 说明                                   |
+| -------- | ---------- | ------------------------ | -------------------------------------- |
+| 内幕消息 | 基建       | `variant: "cheap"` (可选) | 提前获取新闻预览                       |
+| 闪电交易 | 基建       | —                        | 接下来3天每天多一次即时交易            |
+| 止损名刀 | 风控       | —                        | 撤销所有挂单，下跌保护                 |
+| 定向增发 | 风控       | —                        | 折扣购入锁定黄金                       |
+| 网络风暴 | 金融科技   | `target_player_id`       | 指定对手，其下一次订单延迟1天           |
+| 舆情打击 | 金融科技   | —                        | 伪造新闻广播，干扰对手                 |
+
+使用 `get_all_player_ids()` 获取所有选手 ID，用于 `网络风暴` 等需指定目标的技能。
 
 ---
 

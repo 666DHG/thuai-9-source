@@ -129,6 +129,6 @@ public partial class GameController
     private void HandleActivateSkill(string token, ActivateSkillMessage msg)
     {
         if (Game.Stage != GameStage.TradingDay || Game.CurrentTradingDay == null) return;
-        Game.CurrentTradingDay.HandleActivateSkill(token, msg.SkillName, msg.TargetToken, msg.Variant);
+        Game.CurrentTradingDay.HandleActivateSkill(token, msg.SkillName, msg.TargetPlayerId, msg.Variant);
     }
 }

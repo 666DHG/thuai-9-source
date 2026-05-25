@@ -176,6 +176,7 @@ def parse_player_state(data: JsonObject) -> PlayerState:
         for order in _require_object_list(data, "pendingOrders")
     ]
     return PlayerState(
+        player_id=_require_int(data, "playerId"),
         mora=_require_int(data, "mora"),
         frozen_mora=_require_int(data, "frozenMora"),
         gold=_require_int(data, "gold"),
@@ -253,13 +254,26 @@ def parse_trade_notification(data: JsonObject) -> TradeNotification:
     )
 
 
+def _optional_int(data: JsonObject, key: str) -> Optional[int]:
+    """Read an optional int field and validate its type if present."""
+
+    value = data.get(key)
+    if value is None:
+        return None
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise TypeError(
+            f"Field '{key}' must be int or null, got {type(value).__name__}"
+        )
+    return value
+
+
 def parse_skill_effect(data: JsonObject) -> SkillEffect:
     """Convert a wire-format skill-effect payload into a SDK model."""
 
     return SkillEffect(
         _require_str(data, "skillName"),
-        _require_str(data, "sourcePlayer"),
-        _optional_str(data, "targetPlayer"),
+        _require_int(data, "sourcePlayerId"),
+        _optional_int(data, "targetPlayerId"),
         _require_str(data, "description"),
     )
 

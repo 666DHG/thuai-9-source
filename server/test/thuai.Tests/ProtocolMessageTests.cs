@@ -50,7 +50,7 @@ public class ProtocolMessageTests
 
         Assert.Equal("ACTIVATE_SKILL", json.GetProperty("messageType").GetString());
         Assert.Equal("MarketRadar", json.GetProperty("skillName").GetString());
-        Assert.False(json.TryGetProperty("targetToken", out _));
+        Assert.False(json.TryGetProperty("targetPlayerId", out _));
         Assert.False(json.TryGetProperty("variant", out _));
     }
 
@@ -59,6 +59,7 @@ public class ProtocolMessageTests
     {
         var json = ParseJson(new PlayerStateMessage
         {
+            PlayerId = 0,
             Mora = 1200,
             FrozenMora = 150,
             Gold = 8,
@@ -88,6 +89,7 @@ public class ProtocolMessageTests
         });
 
         Assert.Equal("PLAYER_STATE", json.GetProperty("messageType").GetString());
+        Assert.Equal(0, json.GetProperty("playerId").GetInt32());
         Assert.Equal(1200, json.GetProperty("mora").GetInt64());
         Assert.Equal(12, json.GetProperty("monthlyTradeCount").GetInt32());
 
@@ -161,24 +163,24 @@ public class ProtocolMessageTests
         var skillEffect = ParseJson(new SkillEffectMessage
         {
             SkillName = "Hedge",
-            SourcePlayer = "alpha",
+            SourcePlayerId = 0,
             Description = "Protected against the next loss"
         });
         Assert.Equal("SKILL_EFFECT", skillEffect.GetProperty("messageType").GetString());
-        Assert.Equal("alpha", skillEffect.GetProperty("sourcePlayer").GetString());
-        Assert.False(skillEffect.TryGetProperty("targetPlayer", out _));
+        Assert.Equal(0, skillEffect.GetProperty("sourcePlayerId").GetInt32());
+        Assert.False(skillEffect.TryGetProperty("targetPlayerId", out _));
 
         var settlement = ParseJson(new DaySettlementMessage
         {
             Day = 2,
             Month = 5,
-            WinnerToken = "alpha",
+            WinnerPlayerId = 0,
             Reason = "highest NAV",
             Players =
             [
                 new DaySettlementPlayer
                 {
-                    Token = "alpha",
+                    PlayerId = 0,
                     Nav = 1500,
                     Mora = 900,
                     Gold = 6,
@@ -189,13 +191,13 @@ public class ProtocolMessageTests
                     ActiveCards = ["Bridge"]
                 }
             ],
-            CumulativeNavs = new Dictionary<string, long> { ["alpha"] = 4500 },
-            FinalBonusWinnerToken = "beta",
+            CumulativeNavs = new Dictionary<int, long> { [0] = 4500 },
+            FinalBonusWinnerPlayerId = 1,
             FinalBonusPoints = 2
         });
         Assert.Equal(5, settlement.GetProperty("month").GetInt32());
-        Assert.Equal("beta", settlement.GetProperty("finalBonusWinnerToken").GetString());
-        Assert.Equal(4500, settlement.GetProperty("cumulativeNavs").GetProperty("alpha").GetInt64());
+        Assert.Equal(1, settlement.GetProperty("finalBonusWinnerPlayerId").GetInt32());
+        Assert.Equal(4500, settlement.GetProperty("cumulativeNavs").GetProperty("0").GetInt64());
 
         var error = ParseJson(new ErrorMessage
         {

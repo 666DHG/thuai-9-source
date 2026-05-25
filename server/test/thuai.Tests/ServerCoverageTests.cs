@@ -233,13 +233,13 @@ public class ProtocolCoverageTests
         {
             Day = 2,
             Month = 5,
-            WinnerToken = "alpha",
+            WinnerPlayerId = 0,
             Reason = "higher NAV",
             Players =
             [
                 new DaySettlementPlayer
                 {
-                    Token = "alpha",
+                    PlayerId = 0,
                     Nav = 1500,
                     Mora = 1000,
                     Gold = 2,
@@ -250,13 +250,13 @@ public class ProtocolCoverageTests
                     ActiveCards = ["闪电交易"]
                 }
             ],
-            CumulativeNavs = new Dictionary<string, long> { ["alpha"] = 2500 },
-            FinalBonusWinnerToken = "beta",
+            CumulativeNavs = new Dictionary<int, long> { [0] = 2500 },
+            FinalBonusWinnerPlayerId = 1,
             FinalBonusPoints = 2
         });
         Assert.Equal(2, settlement.GetProperty("day").GetInt32());
-        Assert.Equal("beta", settlement.GetProperty("finalBonusWinnerToken").GetString());
-        Assert.Equal(2500, settlement.GetProperty("cumulativeNavs").GetProperty("alpha").GetInt64());
+        Assert.Equal(1, settlement.GetProperty("finalBonusWinnerPlayerId").GetInt32());
+        Assert.Equal(2500, settlement.GetProperty("cumulativeNavs").GetProperty("0").GetInt64());
 
         var error = ParseJson(new ErrorMessage
         {
@@ -682,7 +682,7 @@ public class TradingDayCoverageTests
         Assert.Equal(892_000, players["alpha"].Mora);
         Assert.Equal(100, players["alpha"].LockedGold);
 
-        Assert.True(day.HandleActivateSkill("alpha", "网络风暴", targetToken: "beta"));
+        Assert.True(day.HandleActivateSkill("alpha", "网络风暴", targetPlayerId: 1));
         Assert.True(day.HandleLimitBuy("beta", 100, 1));
         Assert.Equal(2, day.MatchEngine.GetPendingOrders("beta").Single().ArrivalTick);
 

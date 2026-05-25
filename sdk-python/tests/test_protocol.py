@@ -142,6 +142,7 @@ class ProtocolParserTests(unittest.TestCase):
 
         state = parse_player_state(
             {
+                "playerId": 0,
                 "mora": 1200,
                 "frozenMora": 150,
                 "gold": 7,
@@ -169,6 +170,7 @@ class ProtocolParserTests(unittest.TestCase):
             }
         )
 
+        self.assertEqual(0, state.player_id)
         self.assertEqual(1200, state.mora)
         self.assertEqual(150, state.frozen_mora)
         self.assertEqual(14, state.monthly_trade_count)
@@ -221,14 +223,14 @@ class ProtocolParserTests(unittest.TestCase):
         effect = parse_skill_effect(
             {
                 "skillName": "Hedge",
-                "sourcePlayer": "alpha",
-                "targetPlayer": None,
+                "sourcePlayerId": 0,
+                "targetPlayerId": None,
                 "description": "Protected against one loss",
             }
         )
         self.assertEqual("Hedge", effect.skill_name)
-        self.assertEqual("alpha", effect.source_player)
-        self.assertIsNone(effect.target_player)
+        self.assertEqual(0, effect.source_player_id)
+        self.assertIsNone(effect.target_player_id)
 
         options = parse_strategy_options(
             {
@@ -420,6 +422,7 @@ class ProtocolActionTests(unittest.IsolatedAsyncioTestCase):
             json.dumps(
                 {
                     "messageType": "PLAYER_STATE",
+                    "playerId": 0,
                     "mora": 1200,
                     "frozenMora": 150,
                     "gold": 7,
@@ -489,8 +492,8 @@ class ProtocolActionTests(unittest.IsolatedAsyncioTestCase):
                 {
                     "messageType": "SKILL_EFFECT",
                     "skillName": "Hedge",
-                    "sourcePlayer": "alpha",
-                    "targetPlayer": "beta",
+                    "sourcePlayerId": 0,
+                    "targetPlayerId": 1,
                     "description": "Protected against one loss",
                 }
             ),
@@ -519,9 +522,9 @@ class ProtocolActionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             [
                 {
-                    "messageType": "CANCEL_ORDER",
+                    "messageType": "HELLO",
                     "token": "player-1",
-                    "orderId": -1,
+                    "role": "player",
                 }
             ],
             [json.loads(payload) for payload in fake_ws.sent_messages],
@@ -653,7 +656,7 @@ class ProtocolActionTests(unittest.IsolatedAsyncioTestCase):
 
         await agent.activate_skill(
             "Freeze",
-            target_token="player-2",
+            target_player_id=1,
             variant="intense",
         )
 
@@ -663,7 +666,7 @@ class ProtocolActionTests(unittest.IsolatedAsyncioTestCase):
                     "messageType": "ACTIVATE_SKILL",
                     "token": "player-1",
                     "skillName": "Freeze",
-                    "targetToken": "player-2",
+                    "targetPlayerId": 1,
                     "variant": "intense",
                 }
             ],

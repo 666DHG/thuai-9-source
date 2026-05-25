@@ -70,6 +70,17 @@ public partial class Game
         }
     }
 
+    /// <summary>
+    /// Look up a player by player ID.
+    /// </summary>
+    public Player? FindPlayerById(int playerId)
+    {
+        lock (_lock)
+        {
+            return Players.Values.FirstOrDefault(p => p.PlayerId == playerId);
+        }
+    }
+
     public List<Player> GetPlayersSnapshot()
     {
         lock (_lock)

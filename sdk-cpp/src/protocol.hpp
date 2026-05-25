@@ -65,13 +65,13 @@ inline auto buildSelectStrategyMessage(const std::string& token,
 
 inline auto buildActivateSkillMessage(
     const std::string& token, const std::string& skillName,
-    const std::optional<std::string>& targetToken = std::nullopt,
+    const std::optional<int>& targetPlayerId = std::nullopt,
     const std::optional<std::string>& variant = std::nullopt) -> json {
   json message = {{"messageType", "ACTIVATE_SKILL"},
                   {"token", token},
                   {"skillName", skillName}};
-  if (targetToken.has_value()) {
-    message["targetToken"] = *targetToken;
+  if (targetPlayerId.has_value()) {
+    message["targetPlayerId"] = *targetPlayerId;
   }
   if (variant.has_value()) {
     message["variant"] = *variant;
@@ -124,6 +124,7 @@ inline auto parseMarketState(const json& data) -> MarketState {
 
 inline auto parsePlayerState(const json& data) -> PlayerState {
   PlayerState state;
+  state.playerId = data.value("playerId", -1);
   state.mora = data.value("mora", std::int64_t{0});
   state.frozenMora = data.value("frozenMora", std::int64_t{0});
   state.gold = data.value("gold", 0);
@@ -220,9 +221,9 @@ inline auto parseTrade(const json& data) -> TradeNotification {
 inline auto parseSkillEffect(const json& data) -> SkillEffect {
   SkillEffect skillEffect;
   skillEffect.skillName = data.value("skillName", "");
-  skillEffect.sourcePlayer = data.value("sourcePlayer", "");
-  if (data.contains("targetPlayer") && !data["targetPlayer"].is_null()) {
-    skillEffect.targetPlayer = data.value("targetPlayer", std::string(""));
+  skillEffect.sourcePlayerId = data.value("sourcePlayerId", -1);
+  if (data.contains("targetPlayerId") && !data["targetPlayerId"].is_null()) {
+    skillEffect.targetPlayerId = data.value("targetPlayerId", -1);
   }
   skillEffect.description = data.value("description", "");
   return skillEffect;
@@ -232,15 +233,16 @@ inline auto parseDaySettlement(const json& data) -> DaySettlement {
   DaySettlement settlement;
   settlement.day = data.value("day", 0);
   settlement.month = data.value("month", 0);
-  settlement.winnerToken = data.value("winnerToken", "");
+  settlement.winnerPlayerId = data.value("winnerPlayerId", -1);
   settlement.reason = data.value("reason", "");
-  settlement.finalBonusWinnerToken = data.value("finalBonusWinnerToken", "");
+  settlement.finalBonusWinnerPlayerId =
+      data.value("finalBonusWinnerPlayerId", -1);
   settlement.finalBonusPoints = data.value("finalBonusPoints", 0);
 
   if (data.contains("players") && data["players"].is_array()) {
     for (const auto& playerEntry : data["players"]) {
       DaySettlementPlayer player;
-      player.token = playerEntry.value("token", "");
+      player.playerId = playerEntry.value("playerId", -1);
       player.nav = playerEntry.value("nav", std::int64_t{0});
       player.mora = playerEntry.value("mora", std::int64_t{0});
       player.gold = playerEntry.value("gold", 0);
@@ -248,8 +250,8 @@ inline auto parseDaySettlement(const json& data) -> DaySettlement {
       player.frozenGold = playerEntry.value("frozenGold", 0);
       player.lockedGold = playerEntry.value("lockedGold", 0);
       player.tradeCount = playerEntry.value("tradeCount", 0);
-      if (playerEntry.contains("activeCards")
-          && playerEntry["activeCards"].is_array()) {
+      if (playerEntry.contains("activeCards") &&
+          playerEntry["activeCards"].is_array()) {
         for (const auto& cardValue : playerEntry["activeCards"]) {
           if (cardValue.is_string()) {
             player.activeCards.push_back(cardValue.get<std::string>());
@@ -261,8 +263,8 @@ inline auto parseDaySettlement(const json& data) -> DaySettlement {
   }
 
   if (data.contains("cumulativeNavs") && data["cumulativeNavs"].is_object()) {
-    for (const auto& [token, navValue] : data["cumulativeNavs"].items()) {
-      settlement.cumulativeNavs[token] = navValue.get<std::int64_t>();
+    for (const auto& [key, navValue] : data["cumulativeNavs"].items()) {
+      settlement.cumulativeNavs[std::stoi(key)] = navValue.get<std::int64_t>();
     }
   }
 

@@ -1,6 +1,7 @@
 """Main module for Python SDK"""
 
 import asyncio
+import argparse
 import logging
 import os
 
@@ -15,6 +16,16 @@ from sdk_python.models import (
 )
 
 logging.basicConfig(level=logging.INFO)
+
+
+def parse_args():
+    """Parse command-line arguments."""
+    parser = argparse.ArgumentParser(description="THUAI-9 Python SDK agent")
+    parser.add_argument("--token", default=os.environ.get("TOKEN", "player1"))
+    parser.add_argument(
+        "--server", default=os.environ.get("SERVER", "ws://localhost:14514")
+    )
+    return parser.parse_args()
 
 
 class MyAgent(Agent):
@@ -65,8 +76,9 @@ class MyAgent(Agent):
 
 async def main():
     """Async main function"""
-    token = os.environ.get("TOKEN", "player1")
-    server = os.environ.get("SERVER", "ws://localhost:14514")
+    args = parse_args()
+    token = args.token
+    server = args.server
     agent = MyAgent(token=token, server_url=server)
     await agent.run()
 
